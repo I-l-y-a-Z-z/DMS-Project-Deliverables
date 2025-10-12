@@ -6,9 +6,8 @@ This repository contains the deliverables for the Data Management Systems (DMS) 
 
 The repository includes the following files:
 
-- `DMG_Project_Template.tex`: A LaTeX template for structuring DMS project reports.
-- `Deliverable1-DMSProject.pdf`: The first project deliverable, outlining the initial phase of the DMS project.
-- `Deliverable1-DMSProject-CorrectedAfterDeadlineDoNotCount.pdf`: A revised version of the first deliverable, reflecting corrections made post-deadline.
+- `Deliverable-DMSProject.tex`: The latex Code
+- `Deliverable-DMSProject.pdf`: The project deliverable.
 - `Figures/`: A directory containing images and diagrams used within the project documentation.
 
 ## Usage
@@ -16,7 +15,7 @@ The repository includes the following files:
 To utilize the LaTeX template:
 
 1. Clone the repository to your local machine.
-2. Navigate to the directory containing `DMG_Project_Template.tex`.
+2. Navigate to the directory containing `Deliverable-DMSProject.tex`.
 3. Compile the `.tex` file using a LaTeX editor or command-line tool to generate the project report.
 
 Ensure that all referenced figures are placed in the `Figures/` directory to maintain proper linking.
