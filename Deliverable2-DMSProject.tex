@@ -1,0 +1,427 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{graphicx}   % images
+\usepackage{fancyhdr}   % headers/footers
+\usepackage{tcolorbox}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{mdframed}
+\usepackage{enumitem}
+\geometry{margin=1in}
+
+\lstset{
+  language=SQL,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue}\bfseries,
+  stringstyle=\color{brown},
+  commentstyle=\color{gray}\itshape,
+  showstringspaces=false,
+  frame=single,
+  breaklines=true,
+  captionpos = b
+}
+
+% ---------- Header ----------
+\setlength{\headheight}{36pt}
+\setlength{\headsep}{18pt}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhf{}
+\fancyhead[L]{\includegraphics[width=0.13\textwidth, keepaspectratio]{Figures/UM6Plogo.png}}
+\fancyhead[R]{\includegraphics[width=0.13\textwidth, keepaspectratio]{Figures/CC.jpg}}
+\fancyfoot[L]{Data Management Lab}
+\fancyfoot[R]{Prof. Karima Echihabi}
+\fancyfoot[C]{Page \thepage}
+
+% ---------- Deliverable Template ----------
+\begin{document}
+\thispagestyle{empty}
+\begin{center}
+  \includegraphics[width=0.25\textwidth]{Figures/UM6Plogo.png}\hfill
+  \includegraphics[width=0.25\textwidth]{Figures/CC.jpg}
+  \vspace{1.2cm}
+
+  {\LARGE \textbf{Deliverable 2: Relational Schema of the Moroccan National Health Service Data Management System}}\\[0.6cm]
+  {\large \textbf{Data Management Course}}\\[0.2cm]
+  {\large UM6P College of Computing}\\[0.8cm]
+
+  {\normalsize \textbf{Professor:} Karima Echihabi \quad 
+   \textbf{Program:} Computer Engineering}\\[0.1cm]
+  {\normalsize \textbf{Session:} Fall 2025}\\[1cm]
+
+  \rule{0.9\textwidth}{0.5pt}\\[0.5cm]
+  {\large \textbf{Team Information}} \\[0.3cm]
+  \begin{tabular}{|l|l|}
+    \hline
+    \textbf{Team Name} & alfari9 alkhari9 \\ \hline
+    \textbf{Member 1}  & Ilyas Rahmouni \\ \hline
+    \textbf{Member 2}  & Malak Koulat   \\ \hline
+    \textbf{Member 3}  & Aymane Raiss   \\ \hline
+    \textbf{Member 4}  & Zakaria Harira   \\ \hline
+    \textbf{Member 5}  & Youness Latif   \\ \hline
+    \textbf{Member 6}  & Rayane Khaldi   \\ \hline
+    \textbf{Member 7}  & Younes Lougnidi   \\ \hline
+    \textbf{Repository Link} & \texttt{https://github.com/...} \\ \hline
+  \end{tabular}
+  \rule{0.9\textwidth}{0.5pt}\\
+\end{center}
+\clearpage
+\pagestyle{fancy}
+
+% ---------- Sections for Students ----------
+\section{Logical Desgin Tasks 1 : Attributes, Primary Keys and Justification of Composite Keys}
+
+\noindent\textbf{Patient (IID: int primary key)}\\
+Attributes: IID (int), Birth (date), CIN (varchar(50) unique, not null), Name (varchar(100), not null), Sex (enum(‘Male’,‘Female’)), Phone (int), Blood\_Group (enum(‘A+’,‘A-’,‘B+’,‘B-’,‘O-’,‘O+’,‘AB+’,‘AB-’))
+
+\vspace{1em}
+\noindent\textbf{Contact\_Location (CLID: int primary key)}\\
+Attributes: CLID (int), Province (varchar(100)), Street (varchar(200)), Number (int), Postal\_Code (int), Phone (int), City (varchar(100))
+
+\vspace{1em}
+\noindent\textbf{Have ((IID, CLID): composite primary key)}\\
+Attributes: IID (int), CLID (int)\\
+Justification: Composite key ensures that each patient can have multiple contact locations and each contact location can belong to multiple patients.
+
+\vspace{1em}
+\noindent\textbf{Staff (STAFF\_ID: int primary key)}\\
+Attributes: STAFF\_ID (int), Name (varchar(100)), Status (varchar(50))
+
+\vspace{1em}
+\noindent\textbf{Practitioner (STAFF\_ID: int primary key) — ISA relationship with Staff}\\
+Attributes: STAFF\_ID (int), License\_Number (varchar(100)), Speciality (varchar(200))
+
+\vspace{1em}
+\noindent\textbf{Caregiving (STAFF\_ID: int primary key) — ISA relationship with Staff}\\
+Attributes: STAFF\_ID (int), Grade (varchar(50)), Ward (varchar(100))
+
+\vspace{1em}
+\noindent\textbf{Technical (STAFF\_ID: int primary key) — ISA relationship with Staff}\\
+Attributes: STAFF\_ID (int), Certifications (varchar(500)), Modality (varchar(200))
+
+\vspace{1em}
+\noindent\textbf{Hospital (HID: int primary key)}\\
+Attributes: HID (int), Name (varchar(200)), City (varchar(200)), Region (varchar(200))
+
+\vspace{1em}
+\noindent\textbf{Department (DEP\_ID: int primary key)}\\
+Attributes: DEP\_ID (int), Name (varchar(200)), Speciality (varchar(200)), HID (int)
+
+\vspace{1em}
+\noindent\textbf{WorkIn ((STAFF\_ID, DEP\_ID): composite primary key)}\\
+Attributes: STAFF\_ID (int), DEP\_ID (int)\\
+Justification: Composite key ensures that a staff member can work in multiple departments and a department can have multiple staff members.
+
+\vspace{1em}
+\noindent\textbf{Medication (DrugID: int primary key)}\\
+Attributes: DrugID (int), Class (varchar(200)), Name (varchar(200)), Form (varchar(200)), Strength (varchar(50)), Manufacturer (varchar(200)), ActiveIngredient (varchar(100))
+
+\vspace{1em}
+\noindent\textbf{Stock ((DrugID, HID): composite primary key)}\\
+Attributes: DrugID (int), HID (int), Unit\_Price (int), StockTimestamp (timestamp), Qty (int), ReorderLevel (int)\\
+Justification: Composite key ensures that each hospital can stock multiple drugs and each drug can exist in multiple hospitals.
+
+\vspace{1em}
+\noindent\textbf{Prescription (PID: int primary key)}\\
+Attributes: PID (int), DateIssued (date), CAID (int)
+
+\vspace{1em}
+\noindent\textbf{Include ((PID, DrugID): composite primary key)}\\
+Attributes: PID (int), DrugID (int), Dosage (varchar(100)), Duration (varchar(100))\\
+Justification: Composite key ensures that each prescription can include multiple drugs and each drug can appear in multiple prescriptions.
+
+\vspace{1em}
+\noindent\textbf{Clinical\_Activity (CAID: int primary key)}\\
+Attributes: CAID (int), Time (time), Date (date), DEP\_ID (int), IID (int), STAFF\_ID (int)
+
+\vspace{1em}
+\noindent\textbf{Generates (CAID: int primary key, ExID: int unique)}\\
+Attributes: CAID (int), ExID (int)\\
+Justification: Each clinical activity generates exactly one expense and each expense is generated by exactly one clinical activity.
+
+\vspace{1em}
+\noindent\textbf{Expense (ExID: int primary key)}\\
+Attributes: ExID (int), Total (varchar(50)), InsID (int)
+
+\vspace{1em}
+\noindent\textbf{Appointment (CAID: int primary key) — ISA relationship with Clinical\_Activity}\\
+Attributes: CAID (int), Reason (varchar(500)), Status (varchar(500))
+
+\vspace{1em}
+\noindent\textbf{Emergency (CAID: int primary key) — ISA relationship with Clinical\_Activity}\\
+Attributes: CAID (int), TriageLevel (varchar(500)), Outcome (varchar(500))
+
+\vspace{1em}
+\noindent\textbf{Insurance (InsID: int primary key)}\\
+Attributes: InsID (int), Type (varchar(500))
+
+\vspace{1em}
+\noindent\textbf{Covers ((IID, InsID): composite primary key)}\\
+Attributes: IID (int), InsID (int)\\
+Justification: Composite key ensures that one patient can have multiple insurances and one insurance can cover multiple patients.
+
+\newpage
+\section{Logical Design Task 2 : Foreign Keys, Participation and Domain Checks}
+
+\noindent\textbf{Have}\\
+Foreign keys: IID → Patient(IID), CLID → Contact\_Location(CLID)\\
+Participation: Many-to-Many (both partial)
+
+\vspace{1em}
+\noindent\textbf{Practitioner, Caregiving, Technical — ISA with Staff}\\
+Foreign key: STAFF\_ID → Staff(STAFF\_ID)\\
+Participation: Total (each practitioner/caregiver/technician must be a staff member)
+
+\vspace{1em}
+\noindent\textbf{Department}\\
+Foreign key: HID → Hospital(HID)\\
+Participation: Each department belongs to exactly one hospital (total on Department side)
+
+\vspace{1em}
+\noindent\textbf{WorkIn}\\
+Foreign keys: STAFF\_ID → Staff(STAFF\_ID), DEP\_ID → Department(DEP\_ID)\\
+Participation: Many-to-Many (both partial)
+
+\begin{mdframed}
+
+\noindent\textbf{Explanation :}\\
+In our schema, the participation of Staff in the WorkIn relationship is meant to be total, meaning every staff member should belong to at least one department. However, this constraint cannot be strictly enforced using the basic SQL mechanisms we have studied, since adding a staff member does not automatically create a corresponding entry in WorkIn. Ensuring total participation would require more advanced techniques such as triggers (to automatically insert or validate records), stored procedures (to handle insertions in both tables together), application-level checks (enforcing the rule in the program’s logic), or database assertions (theoretical SQL constraints not supported in most systems).
+
+\end{mdframed}
+
+\vspace{1em}
+\noindent\textbf{Stock}\\
+Foreign keys: DrugID → Medication(DrugID), HID → Hospital(HID)\\
+Participation: Many-to-Many (both partial)
+
+\vspace{1em}
+\noindent\textbf{Prescription}\\
+Foreign key: CAID → Clinical\_Activity(CAID)\\
+Participation: Total (each prescription must be linked to a clinical activity)
+
+\vspace{1em}
+\noindent\textbf{Include}\\
+Foreign keys: DrugID → Medication(DrugID), PID → Prescription(PID)\\
+Participation: Many-to-Many (both partial)
+
+\vspace{1em}
+\noindent\textbf{Clinical\_Activity}\\
+Foreign keys: DEP\_ID → Department(DEP\_ID), IID → Patient(IID), STAFF\_ID → Staff(STAFF\_ID)\\
+Participation: Each clinical activity must involve a patient, a staff member, and a department (total)
+
+\vspace{1em}
+\noindent\textbf{Generates}\\
+Foreign keys: CAID → Clinical\_Activity(CAID), ExID → Expense(ExID)\\
+Participation: One-to-One (each clinical activity generates one expense and each expense is generated by exactly one clinical activity)
+
+\vspace{1em}
+\noindent\textbf{Expense}\\
+Foreign key: InsID → Insurance(InsID)\\
+Participation: Partial (not every expense must be insured)
+
+\begin{mdframed}
+
+\noindent\textbf{Solution 1 :(above)}\\
+The First solution is to introduce a separate relationship table, for example Generates, which contains foreign keys referencing both Expense and Clinical Activity. One of these foreign keys is also declared as the primary key of the relationship table to enforce total participation for that specific entity. This design provides a more modular structure and can easily accommodate additional attributes specific to the relationship itself. However, it still does not guarantee total participation for both entities simultaneously—only for the one whose key serves as the primary key.
+
+\vspace{1em}
+\noindent\textbf{Solution 2 :}\\
+In the Second solution, the primary key of the Clinical Activity entity is declared as a foreign key in the Expense table. This ensures a one-to-one relationship, where each Expense must correspond to exactly one Clinical Activity, and no clinical activity can have more than one expense. The ON DELETE CASCADE option can be used to maintain referential integrity, so that deleting a clinical activity automatically deletes the associated expense. While this design effectively enforces a total participation of Expense in the relationship, it only guarantees partial participation on the side of Clinical Activity—it is still possible for a clinical activity to exist without an expense.
+
+\vspace{1em}
+\noindent\textbf{Expense Will Become :}\\
+\\
+\noindent\textbf{Expense (ExID: int primary key, CAID : int)}\\
+Attributes: CAID (int), ExID (int), Total (varchar(50)), InsID (int)\\
+Foreign key: CAID → Clinical\_Activity(CAID)\\
+Participation: Total
+
+\end{mdframed}
+\vspace{1em}
+\noindent\textbf{Appointment / Emergency — ISA with Clinical\_Activity}\\
+Foreign key: CAID → Clinical\_Activity(CAID)\\
+Participation: One-to-One (each clinical activity can either be an appointment or emergency)
+
+\vspace{1em}
+\noindent\textbf{Covers}\\
+Foreign keys: IID → Patient(IID), InsID → Insurance(InsID)\\
+Participation: Many-to-Many (both partial)
+
+\newpage
+
+\vspace{1em}
+\subsection*{Domain Checks}
+\begin{itemize}
+    \item Sex: ENUM(‘Male’, ‘Female’)
+    \item Blood\_Group: ENUM(‘A+’, ‘A-’, ‘B+’, ‘B-’, ‘O-’, ‘O+’, ‘AB+’, ‘AB-’)
+    \item Phone, Postal\_Code, Number, Qty, ReorderLevel, Unit\_Price: must be positive integers
+    \item Date, Time: valid SQL date/time format
+    \item Status: varchar(50) (domain restricted by business rules if needed)
+\end{itemize}
+
+\newpage
+
+\section{Logical Design Task 3 : Implementation of part of the schema in SQL}
+\subsection{Creating the tables}
+
+\begin{lstlisting}[language=SQL,caption={Create Patient Table}]
+CREATE TABLE Patient(
+    IID INT PRIMARY KEY,
+    Birth DATE,
+    CIN VARCHAR(50) UNIQUE NOT NULL,
+    Name VARCHAR(100) NOT NULL,
+    Sex ENUM('Male','Female'),
+    Phone INT,
+    Blood_Group ENUM('A+','A-','B+','B-','O-','O+','AB+','AB-')
+);
+\end{lstlisting}
+
+\begin{lstlisting}[language=SQL, caption={Create Hospital Table}, label={lst:hospital}]
+CREATE TABLE Hospital (
+    HID INT PRIMARY KEY,
+    Name VARCHAR(200),
+    City VARCHAR(200),
+    Region VARCHAR(200)
+);
+\end{lstlisting}
+
+\begin{lstlisting}[language=SQL, caption={Create Departement Table}]
+CREATE TABLE Department(
+    DEP_ID INT PRIMARY KEY,
+    Name VARCHAR(200),
+    speciality VARCHAR(200),
+    HID INT NOT NULL,
+    FOREIGN KEY(HID) REFERENCES hospital(HID) ON DELETE NO ACTION
+);
+\end{lstlisting}
+
+\begin{lstlisting}[language=SQL, caption={Create Staff Table}]
+CREATE TABLE staff(
+    STAFF_ID INT PRIMARY KEY,
+    Name VARCHAR(100),
+    status VARCHAR(50)
+);
+\end{lstlisting}
+
+\newpage
+
+\begin{lstlisting}[language=SQL, caption={Create Clinical Activity Table}]
+CREATE TABLE clinical_activity(
+    CAID INT PRIMARY KEY,
+    Time TIME,
+    Date DATE,
+    DEP_ID INT NOT NULL,
+    IID INT NOT NULL,
+    Staff_ID INT NOT NULL,
+    FOREIGN KEY (DEP_ID) REFERENCES Department(DEP_ID) ON DELETE NO ACTION,
+    FOREIGN KEY (IID) REFERENCES patient(IID) ON DELETE NO ACTION,
+    FOREIGN KEY (Staff_ID) REFERENCES staff(Staff_ID) ON DELETE NO ACTION
+);
+\end{lstlisting}
+
+\begin{lstlisting}[language=SQL, caption={Create Appointement Table}, label={lst:appointment}]
+CREATE TABLE Appointment(
+    CAID INT PRIMARY KEY,
+    Reason VARCHAR(500),
+    Status VARCHAR(500),
+    FOREIGN KEY (CAID) REFERENCES Clinical_Activity(CAID) ON DELETE CASCADE
+);
+\end{lstlisting}
+
+\subsection{Inserting Tuples}
+
+\begin{lstlisting}[caption={Insert records into the \texttt{hospital} table.}]
+INSERT INTO hospital (HID, Name, City, region) VALUES
+(1, 'Hopital de Benguerir', 'Benguerir', 'Marrakech-Safi'),
+(2, 'Hopital de Casablanca', 'Casablanca', 'Casablanca-Settat');
+\end{lstlisting}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.98\textwidth]{Figures/hospitals.png}
+    \caption{Hospital's table}
+\end{figure}
+
+\newpage
+
+\begin{lstlisting}[caption={Insert records into the \texttt{patient} table.}]
+INSERT INTO patient (IID, Birth, CIN, name, sex, phone, Blood_group) VALUES
+(101, '1990-05-15', 'BK123456', 'Ahmed El Idrissi', 'Male', 0611223344, 'A+'),
+(102, '1985-09-22', 'BJ654321', 'Fatima Alami', 'Female', 0655667788, 'O-');
+\end{lstlisting}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.98\textwidth]{Figures/patients.png}
+    \caption{Patients's table}
+\end{figure}
+
+\begin{lstlisting}[caption={Insert a record into the \texttt{staff} table.}]
+INSERT INTO staff (STAFF_ID, Name, status) VALUES
+(1, 'Dr. Ali Bennani', 'Active');
+\end{lstlisting}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.98\textwidth]{Figures/staff.png}
+    \caption{Staff's table}
+\end{figure}
+
+\begin{lstlisting}[caption={Insert records into the \texttt{Department} table.}]
+INSERT INTO Department (DEP_ID, Name, speciality, HID) VALUES
+(1, 'Cardiology', 'Cardiology', 1),
+(2, 'Neurology', 'Neurology', 2);
+\end{lstlisting}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.98\textwidth]{Figures/departement.png}
+    \caption{Departement's table}
+\end{figure}
+
+\begin{lstlisting}[caption={Insert records into the \texttt{clinical\_activity} table.}]
+INSERT INTO clinical_activity (CAID, Time, Date, DEP_ID, IID, Staff_ID) VALUES
+(1, '09:00:00', '2025-10-20', 1, 101, 1),
+(2, '10:30:00', '2025-10-20', 2, 102, 1);
+\end{lstlisting}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.98\textwidth]{Figures/clinical_activity.png}
+    \caption{Clinical Activity's table}
+\end{figure}
+
+\begin{lstlisting}[caption={Insert records into the \texttt{Appointment} table.}]
+INSERT INTO Appointment (CAID, reason, status) VALUES
+(1, 'Consultation', 'Scheduled'),
+(2, 'Consultation', 'Scheduled');
+\end{lstlisting}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.98\textwidth]{Figures/appointement.png}
+    \caption{Appointements's table}
+\end{figure}
+
+\newpage    
+
+\subsection{Retrieving Patients with appointements in Benguerir}
+
+\begin{lstlisting}[language=SQL, caption={Query to retrieve patients with appointments in Benguerir.}]
+SELECT p.*
+FROM MNHS.patient p
+JOIN clinical_activity ca ON p.IID = ca.IID
+JOIN Appointment a ON ca.CAID = a.CAID
+JOIN Department d ON ca.DEP_ID = d.DEP_ID
+JOIN hospital h ON d.HID = h.HID
+WHERE h.City = 'Benguerir';
+\end{lstlisting}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.98\textwidth]{Figures/query.png}
+    \caption{Query's output}
+\end{figure}
+
+\end{document}
