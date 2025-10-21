@@ -1,0 +1,475 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{graphicx}   % images
+\usepackage{fancyhdr}   % headers/footers
+\usepackage{tcolorbox}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{mdframed}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\geometry{margin=1in}
+
+% ---------- LaTeX settings for SQL code ----------
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+  language=SQL,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue}\bfseries,
+  stringstyle=\color{brown},
+  commentstyle=\color{gray}\itshape,
+  showstringspaces=false,
+  frame=single,
+  breaklines=true,
+  captionpos=b
+}
+
+% ---------- Header/Footer settings ----------
+\setlength{\headheight}{36pt}
+\setlength{\headsep}{18pt}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhf{}
+\fancyhead[L]{\includegraphics[width=0.13\textwidth, keepaspectratio]{Figures/UM6Plogo.png}}
+\fancyhead[R]{\includegraphics[width=0.13\textwidth, keepaspectratio]{Figures/CC.jpg}}
+\fancyfoot[L]{Data Management Lab}
+\fancyfoot[R]{Prof. Karima Echihabi}
+\fancyfoot[C]{Page \thepage}
+
+\begin{document}
+% ---------- Title Page (as provided) ----------
+\thispagestyle{empty}
+\begin{center}
+  \includegraphics[width=0.25\textwidth]{Figures/UM6Plogo.png}\hfill
+  \includegraphics[width=0.25\textwidth]{Figures/CC.jpg}
+  \vspace{1.2cm}
+
+  {\LARGE \textbf{Deliverable 3: Relational Algebra, SQL and Functional Dependencies}}\\[0.6cm]
+  {\large \textbf{Data Management Course}}\\[0.2cm]
+  {\large UM6P College of Computing}\\[0.8cm]
+
+  {\normalsize \textbf{Professor:} Karima Echihabi \quad 
+   \textbf{Program:} Computer Engineering}\\[0.1cm]
+  {\normalsize \textbf{Session:} Fall 2025}\\[1cm]
+
+  \rule{0.9\textwidth}{0.5pt}\\[0.5cm]
+  {\large \textbf{Team Information}} \\[0.3cm]
+  \begin{tabular}{|l|l|}
+    \hline
+    \textbf{Team Name} & alfari9 alkhari9 \\ \hline
+    \textbf{Member 1}  & Ilyas Rahmouni \\ \hline
+    \textbf{Member 2}  & Malak Koulat   \\ \hline
+    \textbf{Member 3}  & Aymane Raiss   \\ \hline
+    \textbf{Member 4}  & Zakaria Harira   \\ \hline
+    \textbf{Member 5}  & Youness Latif   \\ \hline
+    \textbf{Member 6}  & Rayane Khaldi   \\ \hline
+    \textbf{Member 7}  & Younes Lougnidi   \\ \hline
+    \textbf{Repository Link} & \texttt{https://github.com/...} \\ \hline
+  \end{tabular}
+  \rule{0.9\textwidth}{0.5pt}\\
+\end{center}
+\clearpage
+\pagestyle{fancy}
+
+% ---------- Sections for Lab 4 ----------
+\section{Part 1: Relational Algebra and SQL}
+
+\subsection*{1. Find the names of patients who have had at least one clinical activity handled by active staff.}
+\noindent\textbf{Relational Algebra:}\\
+\begin{align*}
+\pi_{\text{FullName}} \Big( 
+    & \sigma_{\text{Status='Active'}} (\text{Staff}) \\
+    & \Join_{\text{Staff.STAFF\_ID} = \text{ClinicalActivity.STAFF\_ID}} \text{ClinicalActivity} \\
+    & \Join_{\text{ClinicalActivity.IID} = \text{Patient.IID}} \text{Patient}
+\Big)
+\end{align*}
+\noindent\textbf{SQL:}\\
+\begin{lstlisting}[caption={Query for patients treated by active staff.}]
+SELECT P.FullName
+FROM Patient P
+JOIN ClinicalActivity CA ON P.IID = CA.IID
+JOIN Staff S ON CA.STAFF_ID = S.STAFF_ID
+WHERE S.Status = 'Active';
+\end{lstlisting}
+
+\subsection*{2. Find Staff IDs of staff who are either 'Active' or have issued at least one prescription.}
+\noindent\textbf{Relational Algebra:}\\
+\begin{align*}
+\left( \pi_{\text{STAFF\_ID}}(\sigma_{\text{Status='Active'}}(\text{Staff})) \right) \cup \left( \pi_{\text{STAFF\_ID}}(\text{ClinicalActivity} \Join_{\text{CAID}} \text{Prescription}) \right)
+\end{align*}
+\noindent\textbf{SQL:}\\
+\begin{lstlisting}[caption={Query for active staff or staff who issued prescriptions.}]
+SELECT STAFF_ID FROM Staff WHERE Status = 'Active'
+UNION
+SELECT CA.STAFF_ID
+FROM ClinicalActivity CA
+JOIN Prescription P ON CA.CAID = P.CAID;
+\end{lstlisting}
+
+\subsection*{3. Find Hospital IDs of hospitals located in 'Benguerir' or having at least one department with the specialty 'Cardiology'.}
+\noindent\textbf{Relational Algebra:}\\
+\[
+\left( \pi_{\text{HID}}(\sigma_{\text{City='Benguerir'}}(\text{Hospital})) \right) \cup \left( \pi_{\text{HID}}(\sigma_{\text{Specialty='Cardiology'}}(\text{Department})) \right)
+\]
+\noindent\textbf{SQL:}\\
+\begin{lstlisting}[caption={Query for hospitals in Benguerir or with a Cardiology department.}]
+SELECT HID FROM Hospital WHERE City = 'Benguerir'
+UNION
+SELECT HID FROM Department WHERE Specialty = 'Cardiology';
+\end{lstlisting}
+
+\subsection*{4. Find Hospital IDs of hospitals that have both 'Cardiology' and 'Pediatrics' departments.}
+\noindent\textbf{Relational Algebra:}\\
+\[
+\left( \pi_{\text{HID}}(\sigma_{\text{Specialty='Cardiology'}}(\text{Department})) \right) \cap \left( \pi_{\text{HID}}(\sigma_{\text{Specialty='Pediatrics'}}(\text{Department})) \right)
+\]
+\noindent\textbf{SQL:}\\
+\begin{lstlisting}[caption={Query for hospitals with both Cardiology and Pediatrics.}]
+SELECT HID FROM Department WHERE Specialty = 'Cardiology'
+INTERSECT
+SELECT HID FROM Department WHERE Specialty = 'Pediatrics';
+\end{lstlisting}
+
+\subsection*{5. Find staff members who have worked in every department of the hospital with HID = 1.}
+\noindent\textbf{Relational Algebra:}\\
+\[
+\left( \pi_{\text{STAFF\_ID, Dep\_ID}}(\text{Work\_in}) \right) / \left( \pi_{\text{DEP\_ID}}(\sigma_{\text{HID}=1}(\text{Department})) \right)
+\]
+\noindent\textbf{SQL:}\\
+\begin{lstlisting}[caption={Query for staff who worked in all departments of Hospital 1.}]
+SELECT W.STAFF_ID
+FROM Work_in W
+WHERE W.Dep_ID IN (SELECT DEP_ID FROM Department WHERE HID = 1)
+GROUP BY W.STAFF_ID
+HAVING COUNT(DISTINCT W.Dep_ID) = (
+    SELECT COUNT(*) FROM Department WHERE HID = 1
+);
+\end{lstlisting}
+
+\subsection*{6. Find staff members who participated in every clinical activity of the department with DEP\_ID = 2.}
+\noindent\textbf{Relational Algebra:}\\
+\[
+\left( \pi_{\text{STAFF\_ID, CAID}}(\text{ClinicalActivity}) \right) / \left( \pi_{\text{CAID}}(\sigma_{\text{DEP\_ID}=2}(\text{ClinicalActivity})) \right)
+\]
+\noindent\textbf{SQL:}\\
+\begin{lstlisting}[caption={Query for staff who participated in all activities of Department 2.}]
+SELECT STAFF_ID
+FROM ClinicalActivity
+WHERE DEP_ID = 2
+GROUP BY STAFF_ID
+HAVING COUNT(DISTINCT CAID) = (
+    SELECT COUNT(*) FROM ClinicalActivity WHERE DEP_ID = 2
+);
+\end{lstlisting}
+
+\subsection*{7. Find pairs of staff members (s1, s2) such that s1 has handled more clinical activities than s2.}
+\noindent\textbf{Relational Algebra:}\\
+Let $\text{StaffCounts} \leftarrow \gamma_{\text{STAFF\_ID; COUNT(CAID)} \rightarrow \text{ActivityCount}}(\text{ClinicalActivity})$
+\[
+\pi_{\text{s1.STAFF\_ID, s2.STAFF\_ID}} \left( (\rho_{\text{s1}}(\text{StaffCounts})) \Join_{\text{s1.ActivityCount} > \text{s2.ActivityCount}} (\rho_{\text{s2}}(\text{StaffCounts})) \right)
+\]
+\noindent\textbf{SQL:}\\
+\begin{lstlisting}[caption={Query for pairs of staff based on activity count.}]
+SELECT s1.STAFF_ID, s2.STAFF_ID
+FROM 
+    (SELECT STAFF_ID, COUNT(CAID) AS ActivityCount 
+     FROM ClinicalActivity GROUP BY STAFF_ID) AS s1,
+    (SELECT STAFF_ID, COUNT(CAID) AS ActivityCount 
+     FROM ClinicalActivity GROUP BY STAFF_ID) AS s2
+WHERE s1.ActivityCount > s2.ActivityCount;
+\end{lstlisting}
+
+\subsection*{8. Find Patient IDs of patients who had clinical activities with at least two different staff members.}
+\noindent\textbf{Relational Algebra:}\\
+\begin{align*}
+\pi_{\text{IID}} \Big( 
+    \sigma_{\text{StaffCount} \geq 2} \big( 
+        \gamma_{\text{IID; COUNT(DISTINCT STAFF\_ID)} \rightarrow \text{StaffCount}} (\text{ClinicalActivity}) 
+    \big) 
+\Big)
+\end{align*}
+\noindent\textbf{SQL:}\\
+\begin{lstlisting}[caption={Query for patients seen by two or more different staff.}]
+SELECT IID
+FROM ClinicalActivity
+GROUP BY IID
+HAVING COUNT(DISTINCT STAFF_ID) >= 2;
+\end{lstlisting}
+
+\subsection*{9. Find CAIDs of clinical activities performed in September 2025 at hospitals located in "Benguerir".}
+\noindent\textbf{Relational Algebra:}\\
+\begin{align*}
+\pi_{\text{CAID}} \Big( \sigma_{\substack{\text{City='Benguerir'} \\ \land \text{Date} \geq \text{'2025-09-01'} \\ \land \text{Date} \leq \text{'2025-09-30'}}} \! \!
+    \Big( 
+        & \text{ClinicalActivity} \\
+        & \Join_{\text{ClinicalActivity.DEP\_ID} = \text{Department.DEP\_ID}} \text{Department} \\
+        & \Join_{\text{Department.HID} = \text{Hospital.HID}} \text{Hospital}
+    \Big)
+\Big)
+\end{align*}
+\noindent\textbf{SQL:}\\
+\begin{lstlisting}[caption={Query for activities in Benguerir during September 2025.}]
+SELECT CA.CAID
+FROM ClinicalActivity CA
+JOIN Department D ON CA.DEP_ID = D.DEP_ID
+JOIN Hospital H ON D.HID = H.HID
+WHERE H.City = 'Benguerir'
+  AND CA.Date BETWEEN '2025-09-01' AND '2025-09-30';
+\end{lstlisting}
+
+\subsection*{10. Find Staff IDs of staff who have issued more than one prescription.}
+\noindent\textbf{Relational Algebra:}\\
+\begin{align*}
+\pi_{\text{STAFF\_ID}} \Big( 
+    \sigma_{\text{PrescriptionCount} > 1} \big( 
+        \gamma_{\text{STAFF\_ID; COUNT(DISTINCT PID)} \rightarrow \text{PrescriptionCount}} \\ (\text{ClinicalActivity} \Join_{\text{ClinicalActivity.CAID} = \text{Prescription.CAID}} \text{Prescription}) 
+    \big) 
+\Big)
+\end{align*}
+\noindent\textbf{SQL:}\\
+\begin{lstlisting}[caption={Query for staff who have issued more than one prescription.}]
+SELECT CA.STAFF_ID
+FROM ClinicalActivity CA
+JOIN Prescription P ON CA.CAID = P.CAID
+GROUP BY CA.STAFF_ID
+HAVING COUNT(DISTINCT P.PID) > 1;
+\end{lstlisting}
+
+\subsection*{11. List IIDs of patients who have scheduled appointments in more than one department.}
+\noindent\textbf{Relational Algebra:}\\
+Let $\text{Scheduled} \leftarrow \sigma_{\text{Status='Scheduled'}}(\text{Appointment})$
+\begin{align*}
+\pi_{\text{IID}} \Big( 
+    \sigma_{\text{DeptCount} > 1} \big( 
+        \gamma_{\text{IID; COUNT(DISTINCT DEP\_ID)} \rightarrow \text{DeptCount}} (\\ \text{Scheduled} \Join_{\text{Scheduled.CAID} = \text{ClinicalActivity.CAID}} \text{ClinicalActivity}) 
+    \big) 
+\Big)
+\end{align*}
+\noindent\textbf{SQL:}\\
+\begin{lstlisting}[caption={Query for patients with appointments in multiple departments.}]
+SELECT CA.IID
+FROM ClinicalActivity CA
+JOIN Appointment A ON CA.CAID = A.CAID
+WHERE A.Status = 'Scheduled'
+GROUP BY CA.IID
+HAVING COUNT(DISTINCT CA.DEP_ID) > 1;
+\end{lstlisting}
+
+\subsection*{12. Find Staff IDs who have no scheduled appointments on the day of the Green March holiday (November 6).}
+\noindent\textbf{Relational Algebra:}\\
+\begin{align*}
+\Big( \pi_{\text{STAFF\_ID}}(\text{Staff}) \Big) - \Big( \pi_{\text{STAFF\_ID}} \big( 
+    \sigma_{\substack{\text{Status='Scheduled'} \\ \land \text{EXTRACT(MONTH FROM Date)=11} \\ \land \text{EXTRACT(DAY FROM Date)=6}}}
+    (\\ \text{ClinicalActivity} \Join_{\text{ClinicalActivity.CAID} = \text{Appointment.CAID}} \text{Appointment}) \big) 
+\Big)
+\end{align*}
+\noindent\textbf{SQL:}\\
+\begin{lstlisting}[caption={Query for staff with no appointments on November 6.}]
+SELECT STAFF_ID FROM Staff
+EXCEPT
+SELECT CA.STAFF_ID
+FROM ClinicalActivity CA
+JOIN Appointment A ON CA.CAID = A.CAID
+WHERE A.Status = 'Scheduled'
+  AND EXTRACT(MONTH FROM CA.Date) = 11
+  AND EXTRACT(DAY FROM CA.Date) = 6;
+\end{lstlisting}
+
+\subsection*{13. Find departments whose average number of clinical activities is below the global departmental average.}
+\noindent\textbf{Relational Algebra:}\\
+Let $\text{DeptCounts} \leftarrow \gamma_{\text{DEP\_ID; COUNT(CAID)} \rightarrow \text{NumActivities}}(\text{ClinicalActivity})$ \\
+Let $\text{GlobalAvg} \leftarrow \gamma_{\text{AVG(NumActivities)} \rightarrow \text{AvgVal}}(\text{DeptCounts})$
+\[
+\pi_{\text{DEP\_ID}} ( \text{DeptCounts} \Join_{\text{DeptCounts.NumActivities} < \text{GlobalAvg.AvgVal}} \text{GlobalAvg} )
+\]
+\noindent\textbf{SQL:}\\
+\begin{lstlisting}[caption={Query for departments with below-average activity count.}]
+SELECT DEP_ID
+FROM ClinicalActivity
+GROUP BY DEP_ID
+HAVING COUNT(CAID) < (
+    SELECT AVG(ActivityCount)
+    FROM (
+        SELECT COUNT(CAID) AS ActivityCount
+        FROM ClinicalActivity
+        GROUP BY DEP_ID
+    ) AS DepartmentActivityCounts
+);
+\end{lstlisting}
+
+\subsection*{14. For each staff member, return the patient who has the greatest number of completed appointments with that staff member.}
+\noindent\textbf{Relational Algebra:}\\
+.....
+\vspace{1em}
+
+\noindent\textbf{SQL:}\\
+\begin{lstlisting}[caption={Query to find the top patient for each staff member.}]
+SELECT spc.STAFF_ID, spc.IID
+FROM (
+    SELECT CA.STAFF_ID, CA.IID, COUNT(*) AS ApptCount
+    FROM ClinicalActivity CA
+    JOIN Appointment A ON CA.CAID = A.CAID
+    WHERE A.Status = 'Completed'
+    GROUP BY CA.STAFF_ID, CA.IID
+) AS spc
+WHERE spc.ApptCount = (
+    SELECT MAX(ApptCount)
+    FROM (
+        SELECT CA.STAFF_ID, CA.IID, COUNT(*) AS ApptCount
+        FROM ClinicalActivity CA
+        JOIN Appointment A ON CA.CAID = A.CAID
+        WHERE A.Status = 'Completed'
+        GROUP BY CA.STAFF_ID, CA.IID
+    ) AS inner_spc
+    WHERE inner_spc.STAFF_ID = spc.STAFF_ID
+);
+\end{lstlisting}
+
+\subsection*{15. List patients who had at least 3 emergency admissions during the year 2024.}
+\noindent\textbf{Relational Algebra:}\\
+\begin{align*}
+\pi_{\text{IID}} \Big( 
+    \sigma_{\text{EmergencyCount} \geq 3}\big( 
+        \gamma_{\text{IID; COUNT(CAID)} \rightarrow \text{EmergencyCount}} (
+            \sigma_{\text{EXTRACT(YEAR FROM Date)='2024'}} \\ (\text{ClinicalActivity} \Join_{\text{ClinicalActivity.CAID} = \text{Emergency.CAID}} \text{Emergency})
+        )
+    \big) 
+\Big)
+\end{align*}
+\noindent\textbf{SQL:}\\
+\begin{lstlisting}[caption={Query for patients with 3+ emergency admissions in 2024.}]
+SELECT CA.IID
+FROM ClinicalActivity CA
+JOIN Emergency E ON CA.CAID = E.CAID
+WHERE EXTRACT(YEAR FROM CA.Date) = 2024
+GROUP BY CA.IID
+HAVING COUNT(E.CAID) >= 3;
+\end{lstlisting}
+
+\newpage
+\section{Part 2: Refinement (Functional Dependencies)}
+\subsection*{Summary of Functional Dependencies by Relation}
+\begin{enumerate}[leftmargin=*, itemsep=1em]
+    \item \textbf{Patient}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{IID} \rightarrow \{ \text{CIN, FullName, Birth, Sex, BloodGroup, Phone} \} $
+        \item $ \text{CIN} \rightarrow \{ \text{IID, FullName, Birth, Sex, BloodGroup, Phone} \} $
+        \item \textit{Justification:} IID is the primary key; CIN is a candidate key.
+    \end{itemize}
+
+    \item \textbf{Hospital}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{HID} \rightarrow \{ \text{Name, City, Region} \} $
+        \item \textit{Justification:} HID is the primary key.
+    \end{itemize}
+
+    \item \textbf{Department}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{DEP\_ID} \rightarrow \{ \text{HID, Name, Specialty} \} $
+        \item $ \{\text{HID, Name}\} \rightarrow \{ \text{DEP\_ID, Specialty} \} $
+        \item \textit{Justification:} Unique department ID globally, and unique department name within a hospital.
+    \end{itemize}
+
+    \item \textbf{Staff}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{STAFF\_ID} \rightarrow \{ \text{FullName, Status} \} $
+        \item \textit{Justification:} STAFF\_ID is the primary key.
+    \end{itemize}
+
+    \item \textbf{Work\_in}
+    \begin{itemize}[leftmargin=*]
+        \item $ \{\text{STAFF\_ID, Dep\_ID}\} \rightarrow \{ \} $
+        \item \textit{Justification:} Pure many-to-many relationship; no non-key attributes.
+    \end{itemize}
+
+    \item \textbf{ClinicalActivity}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{CAID} \rightarrow \{ \text{IID, STAFF\_ID, DEP\_ID, Date, Time} \} $
+        \item \textit{Justification:} CAID is the primary key.
+    \end{itemize}
+
+    \item \textbf{Appointment}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{CAID} \rightarrow \{ \text{Reason, Status} \} $
+        \item \textit{Justification:} CAID is both the primary and foreign key to ClinicalActivity.
+    \end{itemize}
+
+    \item \textbf{Emergency}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{CAID} \rightarrow \{ \text{TriageLevel, Outcome} \} $
+        \item \textit{Justification:} CAID is both the primary and foreign key to ClinicalActivity.
+    \end{itemize}
+
+    \item \textbf{Insurance}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{InsID} \rightarrow \{ \text{Type} \} $
+        \item \textit{Justification:} InsID is the primary key.
+    \end{itemize}
+
+    \item \textbf{Expense}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{ExpID} \rightarrow \{ \text{InsID, CAID, Total} \} $
+        \item $ \text{CAID} \rightarrow \{ \text{ExpID, InsID, Total} \} $
+        \item \textit{Justification:} ExpID is the primary key; CAID is unique, establishing a 1-to-1 relationship with ClinicalActivity.
+    \end{itemize}
+
+    \item \textbf{Medication}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{MID} \rightarrow \{ \text{Name, Form, Strength, ActiveIngredient, TherapeuticClass, Manufacturer} \} $
+        \item \textit{Justification:} MID is the primary key.
+    \end{itemize}
+
+    \item \textbf{Stock}
+    \begin{itemize}[leftmargin=*]
+        \item $ \{\text{HID, MID, StockTimestamp}\} \rightarrow \{ \text{UnitPrice, Qty, ReorderLevel} \} $
+        \item \textit{Justification:} Composite key (HID, MID, StockTimestamp) represents stock history per hospital-medication pair.
+    \end{itemize}
+
+    \item \textbf{Prescription}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{PID} \rightarrow \{ \text{CAID, DateIssued} \} $
+        \item $ \text{CAID} \rightarrow \{ \text{PID, DateIssued} \} $
+        \item \textit{Justification:} PID is the primary key; CAID is unique.
+    \end{itemize}
+    
+    \item \textbf{Includes}
+    \begin{itemize}[leftmargin=*]
+        \item $ \{\text{PID, MID}\} \rightarrow \{ \text{Dosage, Duration} \} $
+        \item \textit{Justification:} Many-to-many relationship between Prescription and Medication.
+    \end{itemize}
+
+    \item \textbf{ContactLocation}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{CLID} \rightarrow \{ \text{City, Province, Street, Number, PostalCode, Phone\_Location} \} $
+        \item Additional Transitive Dependencies:
+            \begin{itemize}
+                \item $ \{\text{City, Province, Street}\} \rightarrow \text{PostalCode} $
+                \item $ \text{PostalCode} \rightarrow \{ \text{City, Province} \} $
+                \item $ \{\text{Number, Street, City, Province}\} \rightarrow \text{Phone\_Location} $
+            \end{itemize}
+        \item \textit{Justification:} CLID is the primary key; transitive dependencies reveal normalization issues.
+    \end{itemize}
+
+    \newpage
+
+    \item \textbf{Have}
+    \begin{itemize}[leftmargin=*]
+        \item $ \{\text{IID, CLID}\} \rightarrow \{ \} $
+        \item \textit{Justification:} Many-to-many relationship between Patient and ContactLocation.
+    \end{itemize}
+
+    \item \textbf{Covers}
+    \begin{itemize}[leftmargin=*]
+        \item $ \{\text{InsID, IID}\} \rightarrow \{ \} $
+        \item \textit{Justification:} This is a pure many-to-many relationship between Insurance and Patient. The combination (InsID, IID) is the primary key with no non-key attributes.
+    \end{itemize}
+
+\end{enumerate}
+\end{document}
