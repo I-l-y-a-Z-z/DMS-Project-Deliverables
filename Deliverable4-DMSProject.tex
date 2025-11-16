@@ -1,0 +1,734 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{graphicx}   % images
+\usepackage{fancyhdr}   % headers/footers
+\usepackage{tcolorbox}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{mdframed}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\geometry{margin=1in}
+
+% ---------- LaTeX settings for SQL code ----------
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+  language=SQL,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue}\bfseries,
+  stringstyle=\color{brown},
+  commentstyle=\color{gray}\itshape,
+  showstringspaces=false,
+  frame=single,
+  breaklines=true,
+  captionpos=b
+}
+
+% ---------- Header/Footer settings ----------
+\setlength{\headheight}{36pt}
+\setlength{\headsep}{18pt}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhf{}
+\fancyhead[L]{\includegraphics[width=0.13\textwidth, keepaspectratio]{Figures/UM6Plogo.png}}
+\fancyhead[R]{\includegraphics[width=0.13\textwidth, keepaspectratio]{Figures/CC.jpg}}
+\fancyfoot[L]{Data Management Lab}
+\fancyfoot[R]{Prof. Karima Echihabi}
+\fancyfoot[C]{Page \thepage}
+
+\begin{document}
+% ---------- Title Page ----------
+\thispagestyle{empty}
+\begin{center}
+  \includegraphics[width=0.25\textwidth]{Figures/UM6Plogo.png}\hfill
+  \includegraphics[width=0.25\textwidth]{Figures/CC.jpg}
+  \vspace{1.2cm}
+
+  {\LARGE \textbf{Deliverable 4: Relational Schema Normalization}}\\[0.6cm]
+  {\large \textbf{Data Management Course}}\\[0.2cm]
+  {\large UM6P College of Computing}\\[0.8cm]
+
+  {\normalsize \textbf{Professor:} Karima Echihabi \quad 
+   \textbf{Program:} Computer Engineering}\\[0.1cm]
+  {\normalsize \textbf{Session:} Fall 2025}\\[1cm]
+
+  \rule{0.9\textwidth}{0.5pt}\\[0.5cm]
+  {\large \textbf{Team Information}} \\[0.3cm]
+  \begin{tabular}{|l|l|}
+    \hline
+    \textbf{Team Name} & alfari9 alkhari9 \\ \hline
+    \textbf{Member 1}  & Ilyas Rahmouni \\ \hline
+    \textbf{Member 2}  & Malak Koulat   \\ \hline
+    \textbf{Member 3}  & Aymane Raiss   \\ \hline
+    \textbf{Member 4}  & Zakaria Harira   \\ \hline
+    \textbf{Member 5}  & Youness Latif   \\ \hline
+    \textbf{Member 6}  & Rayane Khaldi   \\ \hline
+    \textbf{Member 7}  & Younes Lougnidi   \\ \hline
+    \textbf{Repository Link} & \texttt{https://github.com/...} \\ \hline
+  \end{tabular}
+  \rule{0.9\textwidth}{0.5pt}\\
+\end{center}
+\clearpage
+\pagestyle{fancy}
+
+\pagenumbering{roman} % Use Roman numerals for the ToC page
+\thispagestyle{fancy} % Apply the fancy style to the ToC page as well
+\tableofcontents % This command generates the Table of Contents
+\clearpage
+\pagenumbering{arabic} % Switch back to Arabic numerals for the main content
+
+% ---------- Main Content ----------
+\section{Task 1: Normalization}
+In this section, we analyze the normalization level of each relation in our database schema. For each relation, we list its functional dependencies (FDs) and assess its adherence to Boyce-Codd Normal Form (BCNF). A relation is in BCNF if for every non-trivial functional dependency $X \rightarrow Y$, the determinant $X$ is a superkey of the relation.
+
+\begin{enumerate}[leftmargin=*, itemsep=1em]
+    \item \textbf{Patient}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{IID} \rightarrow \{ \text{CIN, FullName, Birth, Sex, BloodGroup, Phone, Email} \} $
+        \item $ \text{CIN} \rightarrow \{ \text{IID, FullName, Birth, Sex, BloodGroup, Phone, Email} \} $
+        \item \textit{Justification:} The determinants are \texttt{IID} (the primary key) and \texttt{CIN} (a candidate key), both of which are superkeys. Therefore, the relation is in BCNF.
+    \end{itemize}
+
+    \item \textbf{ContactLocation}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{CLID} \rightarrow \{ \text{City, Province, Street, Number, PostalCode, Phone\_Location} \} $
+        \item \textit{Justification:} The determinant \texttt{CLID} is the primary key and thus a superkey. The relation is in BCNF.
+    \end{itemize}
+
+    \item \textbf{Staff and ISA Subtypes (Practitioner, Caregiving, Technical)}
+    \begin{itemize}[leftmargin=*]
+        \item \texttt{Staff}: $ \text{STAFF\_ID} \rightarrow \{ \text{FullName, Status} \} $
+        \item \texttt{Practitioner}: $ \text{STAFF\_ID} \rightarrow \{ \text{LicenseNumber, Speciality} \} $
+        \item \texttt{Caregiving}: $ \text{STAFF\_ID} \rightarrow \{ \text{Grade, Ward} \} $
+        \item \texttt{Technical}: $ \text{STAFF\_ID} \rightarrow \{ \text{Certifications, Modality} \} $
+        \item \textit{Justification:} In all four relations, the determinant of every FD is \texttt{STAFF\_ID}, which is the primary key for each respective table. Consequently, all are in BCNF.
+    \end{itemize}
+
+    \item \textbf{Hospital}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{HID} \rightarrow \{ \text{Name, City, Region} \} $
+        \item \textit{Justification:} The determinant \texttt{HID} is the primary key, making it a superkey. The relation is in BCNF.
+    \end{itemize}
+    
+    \item \textbf{Department}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{DEP\_ID} \rightarrow \{ \text{HID, Name, Specialty} \} $
+        \item \textit{Justification:} The determinant \texttt{DEP\_ID} is the primary key and a superkey. The relation is in BCNF.
+    \end{itemize}
+    
+    \item \textbf{ClinicalActivity and ISA Subtypes (Appointment, Emergency)}
+    \begin{itemize}[leftmargin=*]
+        \item \texttt{ClinicalActivity}: $ \text{CAID} \rightarrow \{ \text{IID, STAFF\_ID, DEP\_ID, Date, Time} \} $
+        \item \texttt{Appointment}: $ \text{CAID} \rightarrow \{ \text{Reason, Status} \} $
+        \item \texttt{Emergency}: $ \text{CAID} \rightarrow \{ \text{TriageLevel, Outcome} \} $
+        \item \textit{Justification:} The determinant for all three relations is \texttt{CAID}, which is the primary key and thus a superkey. All three relations are in BCNF.
+    \end{itemize}
+    
+    \item \textbf{Insurance}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{InsID} \rightarrow \{ \text{Type} \} $
+        \item \textit{Justification:} The determinant \texttt{InsID} is the primary key, making it a superkey. The relation is in BCNF.
+    \end{itemize}
+
+    \item \textbf{Expense}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{ExID} \rightarrow \{ \text{Total, InsID, CAID} \} $
+        \item $ \text{CAID} \rightarrow \{ \text{ExID, Total, InsID} \} $
+        \item \textit{Justification:} The determinants are \texttt{ExID} (primary key) and \texttt{CAID} (a candidate key, since it is unique), both of which are superkeys. The relation is in BCNF.
+    \end{itemize}
+    
+    \item \textbf{Medication}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{DrugID} \rightarrow \{ \text{Class, Name, Form, Strength, Manufacturer, ActiveIngredient} \} $
+        \item \textit{Justification:} The determinant \texttt{DrugID} is the primary key and therefore a superkey. The relation is in BCNF.
+    \end{itemize}
+
+    \item \textbf{Stock}
+    \begin{itemize}[leftmargin=*]
+        \item $ \{\text{HID, DrugID, StockTimestamp}\} \rightarrow \{ \text{Unit\_Price, Qty, ReorderLevel} \} $
+        \item \textit{Justification:} The determinant is the composite primary key, which is a superkey. The relation is in BCNF.
+    \end{itemize}
+
+    \item \textbf{Prescription}
+    \begin{itemize}[leftmargin=*]
+        \item $ \text{PID} \rightarrow \{ \text{DateIssued, CAID} \} $
+        \item $ \text{CAID} \rightarrow \{ \text{PID, DateIssued} \} $
+        \item \textit{Justification:} The determinants are \texttt{PID} (primary key) and \texttt{CAID} (a candidate key), which are both superkeys. The relation is in BCNF.
+    \end{itemize}
+    
+    \item \textbf{Many-to-Many Relationship Tables}
+    \begin{itemize}[leftmargin=*]
+        \item \texttt{Have}: $ \{\text{IID, CLID}\} \rightarrow \{ \} $
+        \item \texttt{Work\_in}: $ \{\text{STAFF\_ID, DEP\_ID}\} \rightarrow \{ \} $
+        \item \texttt{Covers}: $ \{\text{IID, InsID}\} \rightarrow \{ \} $
+        \item \texttt{Include}: $ \{\text{PID, DrugID}\} \rightarrow \{ \text{Dosage, Duration} \} $
+        \item \textit{Justification:} For \texttt{Have}, \texttt{Work\_in}, and \texttt{Covers}, there are no non-key attributes, so no non-trivial FDs exist. For \texttt{Include}, the determinant of the only non-trivial FD is its primary key. Thus, all four relations are in BCNF.
+    \end{itemize}
+\end{enumerate}
+
+\subsection*{Conclusion: Lossless Join and Dependency Preservation}
+The overall decomposition of our conceptual schema into the final set of relations is both \textbf{lossless} and \textbf{dependency-preserving}.
+
+\paragraph{Lossless Join} The lossless join is guaranteed by the fact that the initial step was to design the ER Model, then map all entities to relations in the relational schema. All relationships between entities were correctly implemented depending on their type: either using foreign keys or, for many-to-many relationships, by creating another table. This approach ensures that when the relations are joined, no data is lost and no incomplete tuples appear.
+
+\paragraph{Dependency Preservation} Based on the BCNF analysis, every functional dependency is fully contained within its corresponding relation. Because no functional dependency spans across multiple tables, the DBMS is able to enforce data constraints on each table individually, without needing to perform joins. This confirms that the decomposition is dependency-preserving.
+
+\newpage
+
+\section{Task 2: DDL Schema Creation}
+DDL Statements for the tables Creation
+
+\subsection{Database Creation}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/create.png}
+    \caption{Dabase Creation}
+\end{figure}
+
+\subsection{Patient Relation}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/patient.png}
+    \caption{DDL for the Patient table.}
+\end{figure}
+
+\subsection{ContactLocation Relation}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/contactlocation.png}
+    \caption{DDL for the ContactLocation table.}
+\end{figure}
+
+\subsection{Have Relation}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/have.png}
+    \caption{DDL for the Have junction table.}
+\end{figure}
+
+\subsection{Staff Relation (Superclass)}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/staff.png}
+    \caption{DDL for the Staff superclass table.}
+\end{figure}
+
+\subsection{Staff ISA Subtypes (Practitioner, Caregiving, Technical)}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/staffisas.png}
+    \caption{DDL for the Practitioner, Caregiving, and Technical subtype tables.}
+\end{figure}
+
+\subsection{Hospital Relation}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/hospital.png}
+    \caption{DDL for the Hospital table.}
+\end{figure}
+
+\subsection{Department Relation}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/department.png}
+    \caption{DDL for the Department table.}
+\end{figure}
+
+\subsection{Work\_in Relation}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/workin.png}
+    \caption{DDL for the Work\_in junction table.}
+\end{figure}
+
+\subsection{ClinicalActivity Relation (Superclass)}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/clinicalactivity.png}
+    \caption{DDL for the ClinicalActivity superclass table.}
+\end{figure}
+
+\subsection{ClinicalActivity ISA Subtypes (Appointment, Emergency)}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/clinicalactivityisas.png}
+    \caption{DDL for the Appointment and Emergency subtype tables.}
+\end{figure}
+
+\subsection{Insurance and Covers Relations}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/insurancecovers.png}
+    \caption{DDL for the Insurance table and the Covers junction table.}
+\end{figure}
+
+\subsection{Expense Relation}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/expense.png}
+    \caption{DDL for the Expense table.}
+\end{figure}
+
+\subsection{Medication Relation}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/medication.png}
+    \caption{DDL for the Medication table.}
+\end{figure}
+
+\subsection{Stock Relation}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/stock.png}
+    \caption{DDL for the Stock table.}
+\end{figure}
+
+\subsection{Prescription Relation}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/prescription.png}
+    \caption{DDL for the Prescription table.}
+\end{figure}
+
+\subsection{Include Relation}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/inlcude.png}
+    \caption{DDL for the Include junction table.}
+\end{figure}
+
+\subsection{DDL Alter to Add Attribute}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/ddlalter.png}
+    \caption{DDL statement to add the Email attribute to the Patient table.}
+\end{figure}
+
+\newpage
+
+\section{Task 3: DML Data Manipulation}
+DML Statements to populate each table with sample data;
+
+\subsection{Patient Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/insertpatient.png}
+    \caption{DML INSERT statements for the Patient table.}
+\end{figure}
+
+\subsection{ContactLocation Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/insertcontactlocation.png}
+    \caption{DML INSERT statements for the ContactLocation table.}
+\end{figure}
+
+\subsection{Have Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/inserthave.png}
+    \caption{DML INSERT statements for the Have table.}
+\end{figure}
+
+\subsection{Staff Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/insertstaff.png}
+    \caption{DML INSERT statements for the Staff table.}
+\end{figure}
+
+\subsection{Practitioner Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/insertpractitioner.png}
+    \caption{DML INSERT statements for the Practitioner table.}
+\end{figure}
+
+\subsection{Caregiving Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/insertcaregiving.png}
+    \caption{DML INSERT statements for the Caregiving table.}
+\end{figure}
+
+\subsection{Technical Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/inserttechnical.png}
+    \caption{DML INSERT statements for the Technical table.}
+\end{figure}
+
+\subsection{Hospital Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/inserthospital.png}
+    \caption{DML INSERT statements for the Hospital table.}
+\end{figure}
+
+\subsection{Department Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/insertdepartment.png}
+    \caption{DML INSERT statements for the Department table.}
+\end{figure}
+
+\subsection{Work\_in Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/insertworkin.png}
+    \caption{DML INSERT statements for the Work\_in table.}
+\end{figure}
+
+\subsection{ClinicalActivity Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/insertclinicalactivity.png}
+    \caption{DML INSERT statements for the ClinicalActivity table.}
+\end{figure}
+
+\subsection{Appointment Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/insertappointment.png}
+    \caption{DML INSERT statements for the Appointment table.}
+\end{figure}
+
+\subsection{Emergency Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/insertemergency.png}
+    \caption{DML INSERT statements for the Emergency table.}
+\end{figure}
+
+\subsection{Insurance Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/insertinsurance.png}
+    \caption{DML INSERT statements for the Insurance table.}
+\end{figure}
+
+\subsection{Covers Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/insertcovers.png}
+    \caption{DML INSERT statements for the Covers table.}
+\end{figure}
+
+\subsection{Expense Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/insertexpense.png}
+    \caption{DML INSERT statements for the Expense table.}
+\end{figure}
+
+\subsection{Medication Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/insertmedication.png}
+    \caption{DML INSERT statements for the Medication table.}
+\end{figure}
+
+\subsection{Stock Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/insertstock.png}
+    \caption{DML INSERT statements for the Stock table.}
+\end{figure}
+
+\subsection{Prescription Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/insertprescription.png}
+    \caption{DML INSERT statements for the Prescription table.}
+\end{figure}
+
+\subsection{Include Data Insertion}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/insertinclude.png}
+    \caption{DML INSERT statements for the Include table.}
+\end{figure}
+
+\subsection{DML Update Operations}
+This subsection shows the DML statements used to update existing records, specifically a patient's phone number and a hospital's region.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/dmlupdate.png}
+    \caption{DML UPDATE statements for Patient and Hospital tables.}
+\end{figure}
+
+\subsection{DML Delete Operation}
+
+This subsection displays the DML statement for deleting a specific record, in this case, a cancelled appointment. The SQL SAFE UPDATES mode is temporarily disabled to allow deletion based on a non-key attribute.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/dmldelete.png}
+    \caption{DML DELETE statement for the Appointment table.}
+\end{figure}
+
+\newpage
+
+\section{Task 4: Queries}
+This final task showcases a series of 20 queries designed to retrieve and analyze data from the MNHS database. Each query is presented with its SQL statement and the resulting output.
+
+\subsection{Select all patients ordered by last name}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/1.png}
+    \caption{Query 1: SQL Statement.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/1out.png}
+    \caption{Query 1: Output.}
+\end{figure}
+
+\subsection{List distinct insurance types}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/2.png}
+    \caption{Query 2: SQL Statement.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/2out.png}
+    \caption{Query 2: Output.}
+\end{figure}
+
+\subsection{Retrieve staff who work in hospitals located in Rabat}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/3.png}
+    \caption{Query 3: SQL Statement.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/3out.png}
+    \caption{Query 3: Output.}
+\end{figure}
+
+\subsection{Find all appointments that are scheduled within the next seven days}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/4.png}
+    \caption{Query 4: SQL Statement.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/4out.png}
+    \caption{Query 4: Output.}
+\end{figure}
+
+\subsection{Count the number of appointments per department}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/5.png}
+    \caption{Query 5: SQL Statement.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/5out.png}
+    \caption{Query 5: Output.}
+\end{figure}
+
+\subsection{Compute the average unit price of medications per hospital}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/6.png}
+    \caption{Query 6: SQL Statement.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/6out.png}
+    \caption{Query 6: Output.}
+\end{figure}
+
+\subsection{List hospitals with more than twenty emergency admissions}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/7.png}
+    \caption{Query 7: SQL Statement.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/7out.png}
+    \caption{Query 7: Output.}
+\end{figure}
+
+\subsection{Find medications in the therapeutic class Antibiotic where the unit price is below 200}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/8.png}
+    \caption{Query 8: SQL Statement.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/8out.png}
+    \caption{Query 8: Output.}
+\end{figure}
+
+\subsection{For each hospital, list the top three most expensive medications}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/9.png}
+    \caption{Query 9: SQL Statement.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/9out.png}
+    \caption{Query 9: Output.}
+\end{figure}
+
+\subsection{For each department, return counts of Scheduled, Completed, and Cancelled appointments}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/10.png}
+    \caption{Query 10: SQL Statement.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/10out.png}
+    \caption{Query 10: Output.}
+\end{figure}
+
+\subsection{List patients who have no scheduled appointments in the next thirty days}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/11.png}
+    \caption{Query 11: SQL Statement.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/11out.png}
+    \caption{Query 11: Output.}
+\end{figure}
+
+\subsection{For each staff member, compute their percentage share of appointments in their hospital}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/12.png}
+    \caption{Query 12: SQL Statement.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/12out.png}
+    \caption{Query 12: Output.}
+\end{figure}
+
+\subsection{Show drugs below ReorderLevel and the hospitals where this occurs}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/13.png}
+    \caption{Query 13: SQL Statement.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/13out.png}
+    \caption{Query 13: Output.}
+\end{figure}
+
+\subsection{Find hospitals that stock every antibiotic in the catalog}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/14.png}
+    \caption{Query 14: SQL Statement.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/14out.png}
+    \caption{Query 14: Output.}
+\end{figure}
+
+\subsection{For each hospital and drug class, flag if its average price is above the citywide average}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/151.png}
+    \caption{Query 15: SQL Statement (Part 1).}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/152.png}
+    \caption{Query 15: SQL Statement (Part 2).}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/15out.png}
+    \caption{Query 15: Output.}
+\end{figure}
+
+\subsection{Return the next appointment date for each patient}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/16.png}
+    \caption{Query 16: SQL Statement.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/16out.png}
+    \caption{Query 16: Output.}
+\end{figure}
+
+\subsection{List patients with 2+ emergency visits whose latest visit was in the last 14 days}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/17.png}
+    \caption{Query 17: SQL Statement.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/17out.png}
+    \caption{Query 17: Output.}
+\end{figure}
+
+\subsection{For each city, rank hospitals by completed appointments in the last 90 days}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/181.png}
+    \caption{Query 18: SQL Statement (Part 1).}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/182.png}
+    \caption{Query 18: SQL Statement (Part 2).}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/18out.png}
+    \caption{Query 18: Output.}
+\end{figure}
+
+\clearpage
+
+\subsection{Find medications with a hospital price spread greater than 30\% within a city}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/19.png}
+    \caption{Query 19: SQL Statement.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/19out.png}
+    \caption{Query 19: Output.}
+\end{figure}
+
+\subsection{Data quality check: List stock entries with negative quantity or non-positive unit price}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/20.png}
+    \caption{Query 20: SQL Statement.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth, keepaspectratio]{Figures/20out.png}
+    \caption{Query 20: Output.}
+\end{figure}
+
+\end{document}
