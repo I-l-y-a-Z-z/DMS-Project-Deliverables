@@ -1,0 +1,1040 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{graphicx}   % images
+\usepackage{fancyhdr}   % headers/footers
+\usepackage{tcolorbox}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{mdframed}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[hidelinks]{hyperref}
+\setcounter{secnumdepth}{4} % Numbering down to level 4 (paragraph)
+\setcounter{tocdepth}{4}    % Show level 4 in Table of Contents
+% Configuration for code styling
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{red},
+    commentstyle=\color{green!50!black},
+    numbers=left,
+    numberstyle=\tiny,
+    stepnumber=1,
+    frame=single,
+    breaklines=true,
+    tabsize=4,
+    showstringspaces=false
+}
+
+\geometry{margin=1in}
+
+% ---------- LaTeX settings for SQL code ----------
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+  language=SQL,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue}\bfseries,
+  stringstyle=\color{brown},
+  commentstyle=\color{gray}\itshape,
+  showstringspaces=false,
+  frame=single,
+  breaklines=true,
+  captionpos=b,
+  backgroundcolor=\color{backcolour}
+}
+
+% ---------- Header/Footer settings ----------
+\setlength{\headheight}{36pt}
+\setlength{\headsep}{18pt}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhf{}
+\fancyhead[L]{\includegraphics[width=0.13\textwidth, keepaspectratio]{Figures/UM6Plogo.png}}
+\fancyhead[R]{\includegraphics[width=0.13\textwidth, keepaspectratio]{Figures/CC.jpg}}
+\fancyfoot[L]{Data Management Lab}
+\fancyfoot[R]{Prof. Karima Echihabi}
+\fancyfoot[C]{Page \thepage}
+
+\begin{document}
+% ---------- Title Page ----------
+\thispagestyle{empty}
+\begin{center}
+  \includegraphics[width=0.25\textwidth]{Figures/UM6Plogo.png}\hfill
+  \includegraphics[width=0.25\textwidth]{Figures/CC.jpg}
+  \vspace{1.2cm}
+
+  {\LARGE \textbf{Deliverable 5: Views, Triggers and Application Development}}\\[0.6cm]
+  {\large \textbf{Data Management Course}}\\[0.2cm]
+  {\large UM6P College of Computing}\\[0.8cm]
+
+  {\normalsize \textbf{Professor:} Karima Echihabi \quad 
+   \textbf{Program:} Computer Engineering}\\[0.1cm]
+  {\normalsize \textbf{Session:} Fall 2025}\\[1cm]
+
+  \rule{0.9\textwidth}{0.5pt}\\[0.5cm]
+  {\large \textbf{Team Information}} \\[0.3cm]
+  \begin{tabular}{|l|l|}
+    \hline
+    \textbf{Team Name} & alfari9 alkhari9 \\ \hline
+    \textbf{Member 1}  & Ilyas Rahmouni \\ \hline
+    \textbf{Member 2}  & Malak Koulat   \\ \hline
+    \textbf{Member 3}  & Aymane Raiss   \\ \hline
+    \textbf{Member 4}  & Zakaria Harira   \\ \hline
+    \textbf{Member 5}  & Youness Latif   \\ \hline
+    \textbf{Member 6}  & Rayane Khaldi   \\ \hline
+    \textbf{Member 7}  & Younes Lougnidi   \\ \hline
+    \textbf{Repository Link} & \texttt{https://github.com/...} \\ \hline
+  \end{tabular}
+  \rule{0.9\textwidth}{0.5pt}\\
+\end{center}
+\clearpage
+\pagestyle{fancy}
+
+\pagenumbering{roman} 
+\thispagestyle{fancy} 
+\tableofcontents 
+\clearpage
+\pagenumbering{arabic} 
+
+% ---------- Main Content ----------
+\section{Task 1: Views and Triggers}
+
+This section details the implementation of SQL Views and Triggers for the MNHS database.
+
+\subsection{Views}
+
+\subsubsection{UpcomingByHospital}
+\textbf{Description:} Returns scheduled appointment counts per hospital for the next 14 days.
+
+\begin{lstlisting}[language=SQL, caption={UpcomingByHospital View}]
+CREATE VIEW UpcomingByHospital AS  
+SELECT 
+    h.Name AS HospitalName, 
+    ca.Date AS ApptDate, 
+    COUNT(*) AS ScheduledCount  
+FROM Appointment a  
+JOIN ClinicalActivity ca ON ca.CAID = a.CAID  
+JOIN Department d ON d.DEP_ID = ca.DEP_ID  
+JOIN Hospital h ON h.HID = d.HID  
+WHERE a.Status = 'Scheduled' 
+  AND ca.Date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 14 DAY)  
+GROUP BY h.HID, h.Name, ca.Date;
+\end{lstlisting}
+
+\subsubsection{Drug Pricing Summary}
+\textbf{Description:} Summarizes average, minimum, and maximum medication prices per hospital.
+
+\begin{lstlisting}[language=SQL, caption={DrugPricingSummary View}]
+CREATE VIEW DrugPricingSummary AS
+SELECT
+    H.HID,
+    H.Name AS HospitalName,
+    M.DrugID,
+    M.Name AS MedicationName,
+    AVG(S.Unit_Price) AS AvgUnitPrice,
+    MIN(S.Unit_Price) AS MinUnitPrice,
+    MAX(S.Unit_Price) AS MaxUnitPrice,
+    MAX(S.StockTimestamp) AS LastStockTimestamp
+FROM Stock S
+JOIN Hospital H ON S.HID = H.HID
+JOIN Medication M ON S.DrugID = M.DrugID
+GROUP BY H.HID, H.Name, M.DrugID, M.Name;
+\end{lstlisting}
+
+\subsubsection{StaffWorkloadThirty}
+\textbf{Description:} Shows staff appointment counts (total and by status) for the last 30 days.
+
+\begin{lstlisting}[language=SQL, caption={StaffWorkloadThirty View}]
+CREATE VIEW StaffWorkloadThirty AS
+SELECT 
+    Staff.STAFF_ID,
+    Staff.FullName, 
+    COUNT(Appointment.CAID) AS TotalAppointments,
+    SUM(CASE WHEN Appointment.Status = 'Scheduled' THEN 1 ELSE 0 END) AS ScheduledCount,
+    SUM(CASE WHEN Appointment.Status = 'Completed' THEN 1 ELSE 0 END) AS CompletedCount,
+    SUM(CASE WHEN Appointment.Status = 'Cancelled' THEN 1 ELSE 0 END) AS CancelledCount
+FROM Staff 
+LEFT JOIN ClinicalActivity ON Staff.STAFF_ID = ClinicalActivity.STAFF_ID 
+    AND DATEDIFF(NOW(), ClinicalActivity.Date) < 30
+LEFT JOIN Appointment ON ClinicalActivity.CAID = Appointment.CAID
+GROUP BY Staff.STAFF_ID, Staff.FullName;
+\end{lstlisting}
+
+\subsubsection{Patient Next Visit}
+\textbf{Description:} Shows the next scheduled appointment details for each patient.
+
+\begin{lstlisting}[language=SQL, caption={PatientNextVisit View}]
+CREATE VIEW PatientNextVisit AS 
+SELECT 
+    p.IID, 
+    p.FullName, 
+    ca.Date AS NextApptDate, 
+    d.Name AS DepartmentName, 
+    h.Name AS HospitalName, 
+    h.City
+FROM Patient p 
+JOIN ClinicalActivity AS ca ON ca.IID = p.IID
+JOIN Appointment a ON ca.CAID = a.CAID
+JOIN Department d ON ca.DEP_ID = d.DEP_ID
+JOIN Hospital h ON d.HID = h.HID
+WHERE a.Status = 'Scheduled'
+AND ca.Date > CURDATE()
+AND ca.Date = (
+    SELECT MIN(ca2.Date)
+    FROM ClinicalActivity AS ca2
+    JOIN Appointment a2 ON ca2.CAID = a2.CAID
+    WHERE ca2.IID = p.IID
+    AND a2.Status = 'Scheduled'
+    AND ca2.Date > CURDATE()
+);
+\end{lstlisting}
+
+\newpage
+\subsection{Triggers} \label{subsec:Triggers}
+
+\subsubsection{Reject Double Booking}
+\textbf{Description:} Blocks concurrent appointments for the same staff member.
+
+\begin{lstlisting}[language=SQL, caption={Double Booking Prevention Triggers}]
+DELIMITER //
+
+CREATE TRIGGER prevent_double_booking_insert
+BEFORE INSERT ON Appointment
+FOR EACH ROW
+BEGIN
+    DECLARE v_staff INT;
+    DECLARE v_date DATE;
+    DECLARE v_time TIME;
+
+    SELECT STAFF_ID, Date, Time INTO v_staff, v_date, v_time
+    FROM ClinicalActivity
+    WHERE CAID = NEW.CAID;
+
+    IF EXISTS (
+        SELECT 1
+        FROM ClinicalActivity
+        WHERE STAFF_ID = v_staff
+        AND Date = v_date
+        AND Time = v_time
+        AND CAID <> NEW.CAID
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Double booking detected: Staff is already scheduled at this time.';
+    END IF;
+END//
+
+CREATE TRIGGER prevent_double_booking_update
+BEFORE UPDATE ON Appointment
+FOR EACH ROW
+BEGIN
+    DECLARE v_staff INT;
+    DECLARE v_date DATE;
+    DECLARE v_time TIME;
+
+    SELECT STAFF_ID, Date, Time INTO v_staff, v_date, v_time
+    FROM ClinicalActivity
+    WHERE CAID = NEW.CAID;
+
+    IF EXISTS (
+        SELECT 1
+        FROM ClinicalActivity
+        WHERE STAFF_ID = v_staff
+        AND Date = v_date
+        AND Time = v_time
+        AND CAID <> NEW.CAID
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Double booking detected: Staff is already scheduled at this time.';
+    END IF;
+END//
+
+DELIMITER ;
+\end{lstlisting}
+
+\subsubsection{Recompute Expense Total}
+\textbf{Description:} Updates expense totals upon prescription changes; blocks if prices are missing.
+
+\begin{lstlisting}[language=SQL, caption={Expense Recalculation Triggers}]
+DELIMITER //
+
+CREATE PROCEDURE RecomputeExpenseTotal(IN p_prescription_id INT)
+BEGIN
+    DECLARE hosp_id INT;
+    DECLARE new_total DECIMAL(10,2);
+    DECLARE missing_price INT DEFAULT 0;
+    
+    SELECT h.HID INTO hosp_id
+    FROM Prescription p
+    JOIN ClinicalActivity ca ON p.CAID = ca.CAID
+    JOIN Department d ON ca.DEP_ID = d.DEP_ID
+    JOIN Hospital h ON d.HID = h.HID
+    WHERE p.PID = p_prescription_id;
+    
+    SELECT COUNT(*) INTO missing_price
+    FROM Include i
+    LEFT JOIN Stock s ON i.DrugID = s.DrugID AND s.HID = hosp_id
+    WHERE i.PID = p_prescription_id AND s.Unit_Price IS NULL;
+    
+    IF missing_price > 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Cannot compute expense: missing unit price for one or more medications';
+    ELSE
+        SELECT COALESCE(SUM(s.Unit_Price), 0) INTO new_total
+        FROM Include i
+        JOIN Stock s ON i.DrugID = s.DrugID AND s.HID = hosp_id
+        WHERE i.PID = p_prescription_id;
+        
+        UPDATE Expense e
+        JOIN Prescription p ON e.CAID = p.CAID
+        SET e.Total = new_total
+        WHERE p.PID = p_prescription_id;
+    END IF;
+END//
+
+CREATE TRIGGER RecomputeExpenseAfterInsert
+AFTER INSERT ON Include
+FOR EACH ROW
+BEGIN
+    CALL RecomputeExpenseTotal(NEW.PID);
+END//
+
+CREATE TRIGGER RecomputeExpenseAfterUpdate
+AFTER UPDATE ON Include
+FOR EACH ROW
+BEGIN
+    CALL RecomputeExpenseTotal(NEW.PID);
+END//
+
+CREATE TRIGGER RecomputeExpenseAfterDelete
+AFTER DELETE ON Include
+FOR EACH ROW
+BEGIN
+    CALL RecomputeExpenseTotal(OLD.PID);
+END//
+
+DELIMITER ;
+\end{lstlisting}
+
+\subsubsection{Prevent Negative or Inconsistent Stock}
+\textbf{Description:} Enforces positive prices and prevents negative stock quantities.
+
+\begin{lstlisting}[language=SQL, caption={Stock Validation Triggers}]
+DELIMITER //
+
+CREATE TRIGGER PreventInvalidStock
+BEFORE INSERT ON Stock
+FOR EACH ROW
+BEGIN
+    IF NEW.Qty < 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'ERROR: Quantity cannot be negative.';
+    END IF;
+    
+    IF NEW.Unit_Price <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'ERROR: Unit price must be positive.';
+    END IF;
+    
+    IF NEW.ReorderLevel < 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'ERROR: Reorder level cannot be negative.';
+    END IF;
+END//
+
+CREATE TRIGGER PreventInvalidStockUpdate
+BEFORE UPDATE ON Stock
+FOR EACH ROW
+BEGIN
+    IF NEW.Qty < 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'ERROR: Quantity cannot be negative.';
+    END IF;
+    
+    IF NEW.Unit_Price <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'ERROR: Unit price must be positive.';
+    END IF;
+    
+    IF NEW.ReorderLevel < 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'ERROR: Reorder level cannot be negative.';
+    END IF;
+    
+    IF NEW.Qty < OLD.Qty AND NEW.Qty < 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'ERROR: Cannot decrease quantity below zero.';
+    END IF;
+END//
+
+DELIMITER ;
+\end{lstlisting}
+
+\subsubsection{Protect Referential Integrity on Patient Delete}
+\textbf{Description:} Prevents deleting patients who have existing clinical activities.
+
+\begin{lstlisting}[language=SQL, caption={Patient Delete Protection Trigger}]
+DELIMITER //
+
+CREATE TRIGGER PreventPatientDelete
+BEFORE DELETE ON Patient
+FOR EACH ROW 
+BEGIN
+    IF EXISTS (
+        SELECT IID FROM ClinicalActivity ca
+        WHERE ca.IID = OLD.IID
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Cannot delete patient. Please reassign or delete dependent clinical activities first.';
+    END IF;
+END//
+
+DELIMITER ;
+\end{lstlisting}
+
+\newpage
+
+\section{Task 2: Application Layer for MNHS Database}
+\subsection{Summary}
+The primary objective of this project is to develop a secure and user-friendly "Application Layer" for the MNHS database.The project prioritizes architectural robustness through the implementation of security best practices, including parameterized queries and environment-based credential management.
+
+\subsection{Technical Stack}
+\subsubsection{The Frontend: Streamlit}
+
+The application interface is built using \textbf{Streamlit}, a Python-based framework designed for the rapid development of data-driven web applications. Streamlit abstracts the frontend complexity (HTML/CSS/JavaScript), allowing for a direct integration of the Python application logic with the user interface.
+
+In this implementation, Streamlit serves three critical functions:
+\begin{itemize}
+    \item \textbf{Navigation Control:} \texttt{st.sidebar} is utilized to create a modular navigation menu, separating distinct business functions (e.g., Patient Directory, Scheduling, Analytics) into isolated views.
+    \begin{figure}[H]
+    \centering
+    \begin{minipage}{0.45\textwidth}
+        \centering
+        \fbox{\includegraphics[width=\textwidth]{Figures/navigation.png}}
+        \captionof{figure}{Navigation Menu}
+    \end{minipage}
+    \hfill 
+    \begin{minipage}{0.5\textwidth}
+        \begin{lstlisting}[language=Python, caption={Python code for sidebar/navigation}] 
+        st.sidebar.markdown("### Navigation")
+        menu_options = [
+        "Patient Directory",
+        "Add New Patient",
+        "Schedule Appointment",
+        "Inventory Status",
+        "Staff Analytics"
+        ]
+        choice = st.sidebar.radio("Go to", menu_options, label_visibility="collapsed")
+        \end{lstlisting}
+    \end{minipage}
+    \end{figure}
+    \item \textbf{Input Handling:} \texttt{st.form} and \texttt{st.form\_submit\_button} are employed to batch user inputs. This prevents premature database queries by ensuring that transactional data (such as appointment details) is only sent to the backend upon explicit user confirmation.
+    \begin{lstlisting}[language=Python, caption={Python code for the form in the schedule appointment section}]
+    with st.form("appt_form"):
+            st.markdown("#### Appointment Details")
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.text_input("New Activity ID (Auto)", value=next_caid, disabled=True)
+            with c2:
+                date = st.date_input("Date")
+            with c3:
+                time = st.time_input("Time")
+            
+            reason = st.text_area("Reason for visit", height=100)
+            submitted = st.form_submit_button("Confirm Schedule", type="primary", use_container_width=True)
+    \end{lstlisting}
+    \begin{figure}[H]
+        \centering
+        \fbox{\includegraphics[width=\textwidth]{Figures/appointment_form.png}}
+        \captionof{figure}{Appointment Form}
+    \end{figure}
+    \item \textbf{Data Visualization:} The framework native integration with \textbf{Pandas} allows for the direct rendering of SQL query results into interactive tables (\texttt{st.dataframe}) and charts.
+    \begin{lstlisting}[language=Python, caption={Python code for the rendering of the patients table using st.dataframe}]
+    if st.button("Load Data"):
+            with st.spinner("Fetching..."):
+                results = list_patients_ordered_by_last_name(limit)
+                if results:
+                    df = pd.DataFrame(results)
+                    st.dataframe(df, use_container_width=True, hide_index=True)
+                else:
+                    st.info("No records found.")
+    \end{lstlisting}
+    \begin{figure}[H]
+        \centering
+        \fbox{\includegraphics[width=\textwidth]{Figures/patient_table.png}}
+        \captionof{figure}{Patients Table}
+    \end{figure}
+\end{itemize}
+
+\subsubsection{The Backend: TiDB}
+
+The application backend relies on \textbf{TiDB}, an open-source distributed SQL database.
+
+\textbf{Implementation Logic:}
+\begin{itemize}
+    \item \textbf{Protocol:} The application interacts with TiDB exactly like a standard single-node MySQL instance. The \texttt{mysql-connector-python} library is used to manage the connection, requiring no specialized TiDB-specific client code.
+    \item \textbf{Secure Connection:} To maintain security best practices, the connection logic is encapsulated in a helper function. This function reads sensitive credentials (Host, Port, User, Password) dynamically from environment variables (\texttt{.env}) rather than hard-coding them, ensuring the distributed cluster is accessed securely.
+\end{itemize}
+
+\begin{lstlisting}[language=Python, caption={TiDB Connection Implementation}]
+# Local .env configuration
+def get_connection():
+    """
+    Establishes a database connection with a hybrid approach:
+    1. Tries to load from Streamlit Secrets (st.secrets) for Cloud deployment.
+    2. Falls back to local .env file using python-dotenv for local dev.
+    """
+    try:
+        # Attempt to access Streamlit Secrets
+        # This will work if .streamlit/secrets.toml exists or on Streamlit Cloud
+        return mysql.connector.connect(
+            host=st.secrets["mysql"]["host"],
+            port=st.secrets["mysql"]["port"],
+            database=st.secrets["mysql"]["database"],
+            user=st.secrets["mysql"]["user"],
+            password=st.secrets["mysql"]["password"]
+        )
+    except (FileNotFoundError, KeyError):
+        # Fallback: Load environment variables from .env file
+        load_dotenv()
+        
+        # Ensure port is an integer
+        port_val = os.getenv("MYSQL_PORT", 3306)
+        
+        return mysql.connector.connect(
+            host=os.getenv("MYSQL_HOST"),
+            port=int(port_val),
+            database=os.getenv("MYSQL_DB"),
+            user=os.getenv("MYSQL_USER"),
+            password=os.getenv("MYSQL_PASSWORD")
+        ) 
+\end{lstlisting}
+
+\begin{figure}[H]
+        \centering
+        \fbox{\includegraphics[width=\textwidth]{Figures/tidb.png}}
+        \captionof{figure}{TiDB SQL Editor}
+    \end{figure}
+
+\newpage
+
+\subsection{Implementation & Code Logic} \label{subsec:imp}
+\subsubsection{Module 1: Patient Directory (list\_patients)}
+
+The Patient Directory module provides the user with a searchable, ordered view of registered patients. The lab specifically asks for the first 20 patients, this is set as the default value for the limit rows option. But we took the liberty to add the possibility of choosing the number of rows to show as an option.
+
+\paragraph{UI Implementation: Server-Side Pagination}
+To ensure optimal performance, the application avoids fetching the entire dataset at once. Instead, it implements a "Server-Side Pagination" strategy controlled by the user.
+
+\begin{itemize}
+    \item \textbf{Dynamic Limit Control:} A Streamlit number input (\texttt{st.number\_input}) allows the user to specify exactly how many records to retrieve (e.g., 10, 20, 50).
+    \begin{lstlisting}[language=Python, caption={Python code for the limit choice}]
+    limit = st.number_input("Limit rows", 5, 100, 20)
+    \end{lstlisting}
+    \begin{figure}[H]
+        \centering
+        \fbox{\includegraphics[width=\textwidth]{Figures/patient_limiter.png}}
+        \captionof{figure}{Dynamic Limit Control}
+    \end{figure}
+    \item \textbf{Performance Impact:} This input is passed directly to the SQL \texttt{LIMIT} clause. This ensures that the heavy lifting is done by the database engine (TiDB), and only the requested subset of data is transmitted over the network to the Python frontend.
+    \begin{lstlisting}[language=Python, caption={Python code calling the function list patients ordered by last name at the press of Load Data button with the limit as an argument to the function}]
+    if st.button("Load Data"):
+            with st.spinner("Fetching..."):
+                results = list_patients_ordered_by_last_name(limit)
+    \end{lstlisting}
+\end{itemize}
+
+\paragraph{SQL Logic: String Manipulation for Sorting}
+A task to implement for this application layer was to order patients by their \textbf{Last Name}. However, the database schema provided stores the name as a single string in the \texttt{FullName} column (e.g., "Ahmed Benali").
+
+Standard SQL sorting (\texttt{ORDER BY FullName}) would incorrectly sort by the first name. To resolve this without altering the schema, the application utilizes the \texttt{SUBSTRING\_INDEX} function.
+
+\textbf{The Sorting Algorithm:}
+\begin{enumerate}
+    \item The query isolates the string segment occurring after the last space character using \texttt{SUBSTRING\_INDEX(FullName, ' ', -1)}.
+    \item This extracted token (the surname) is used as the primary sort key.
+    \item The full name is used as a secondary sort key to resolve ties.
+\end{enumerate}
+
+\begin{lstlisting}[language=Python, caption={Python code including SQL Query for Surname Sorting}]
+def list_patients_ordered_by_last_name(limit=20):
+    sql = """
+    SELECT IID, CIN, FullName, Birth, Sex, BloodGroup, Phone, Email
+    FROM Patient
+    ORDER BY SUBSTRING_INDEX(FullName, ' ', -1)
+    LIMIT %s
+    """
+    try:
+        with get_connection() as cnx:
+            with cnx.cursor(dictionary=True) as cur:
+                cur.execute(sql, (limit,))
+                return cur.fetchall()
+    except Exception as e:
+        st.error(f"Error fetching patients: {e}")
+        return []
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \fbox{\includegraphics[width=\textwidth]{Figures/patient_table.png}}
+    \captionof{figure}{Patients Table Output}
+\end{figure}
+
+\newpage
+
+\subsubsection{Module 2: Intelligent Scheduling System (schedule\_appt)} \label{subsubsec:schedule_appt}
+
+The implementation of this module/functionality prioritizes user experience by abstraction the actual complex data base identifiers and automating the CAID choice.
+
+\paragraph{User-Friendly Input Abstraction}
+A key usability challenge in database applications is that end-users (medical staff) do not know internal Primary Keys (e.g., that "Dr. Leila" is \texttt{STAFF\_ID=2} or "Cardiology" is \texttt{DEP\_ID=11}).
+
+To resolve this, the application implements a \textbf{Translation Layer} using Streamlit and Python dictionaries:
+\begin{figure}[H]
+    \centering
+    \fbox{\includegraphics[width=\textwidth]{Figures/new_appointment.png}}
+    \captionof{figure}{User-Friendly interface}
+\end{figure}
+\begin{enumerate}
+    \item \textbf{Fetching:} On page load, the application executes \texttt{SELECT} queries to retrieve human-readable names (Staff Full Name, Hospital Name, Department Name).
+    \begin{lstlisting}[language=Python, caption={Python code for fetching process on page load}]
+    all_patients = get_all_patients()
+    all_hospitals = get_all_hospitals()
+    all_staff = get_all_staff()
+    \end{lstlisting}
+    \item \textbf{Mapping:} These results are stored in a Python dictionary mapping the Name (Key) to the ID (Value) as seen above.
+    \begin{lstlisting}[language=Python, caption={Python code for patients dictionnary as an example}]
+    patient_options = {f"{p['FullName']} (CIN: {p['CIN']})": p['IID'] for p in all_patients}
+    # patient_options is the dictionary in question
+    # it contains patient names and cin as keys and iids as values
+    \end{lstlisting}
+    \item \textbf{Selection:} The user interacts with a \texttt{st.selectbox} displaying only the names.
+    \begin{lstlisting}[language=Python, caption={Python code for selection}]
+    selected_patient_label = st.selectbox("Select Patient", options=list(patient_options.keys()))
+    \end{lstlisting}
+    \item \textbf{Translation:} Upon submission, the application looks up the corresponding ID from the dictionary to use in the SQL \texttt{INSERT} statement.
+    \begin{lstlisting}[language=Python, caption={Python code for iid lookup}]
+    selected_iid = patient_options[selected_patient_label]
+    \end{lstlisting}
+\end{enumerate}
+
+\paragraph{Automated ID Generation}
+To prevent "Duplicate Key" errors and reduce manual entry, the application automatically calculates the next available Clinical Activity ID (\texttt{CAID}).
+
+\textbf{Logic:}
+Before the transaction begins, the application queries the maximum existing ID in the \texttt{ClinicalActivity} table. The new ID is calculated as $MAX(CAID) + 1$.
+
+\begin{lstlisting}[language=Python, caption={Next CAID Calculation helper function}]
+    def get_next_caid():
+        sql = "SELECT MAX(CAID) as max_id FROM ClinicalActivity"
+        try:
+            with get_connection() as cnx:
+                with cnx.cursor(dictionary=True) as cur:
+                    cur.execute(sql)
+                    res = cur.fetchone()
+                    if res and res['max_id']:
+                        return res['max_id'] + 1
+                    return 1000 
+        except: return 1000
+\end{lstlisting}
+\begin{lstlisting}[language=Python, caption={Function call at page load}]
+    next_caid = get_next_caid()
+\end{lstlisting}
+
+\paragraph{Transactional Integrity}
+The scheduling process involves two distinct SQL write operations:
+\begin{enumerate}
+    \item Creating the parent event in the \texttt{ClinicalActivity} table.
+    \item Creating the specific status in the \texttt{Appointment} table.
+\end{enumerate}
+
+To ensure data consistency, if the second insert fails (e.g., due to a constraint violation), the first insert is automatically reversed (\texttt{ROLLBACK})
+
+\begin{lstlisting}[language=Python, caption={schedule\_appointment function call at the press of Confirme Schedule button}]
+if submitted:
+    if selected_dep_id is None:
+        st.error("Invalid Department.")
+    else:
+        try:
+            schedule_appointment(next_caid, selected_iid, selected_staff_id, selected_dep_id, str(date), str(time), reason)
+                        st.success(f"Appointment scheduled (ID: {next_caid})")
+        except Exception as e:
+            st.error(f"Failed to schedule: {e}")
+
+\end{lstlisting}
+\begin{lstlisting}[language=Python, caption={schedule\_appointment function}]
+def schedule_appointment(caid, iid, staff_id, dep_id, date_str, time_str, reason):
+    """
+    Schedules an appointment with 'Double Booking' protection.
+    """
+    # 1. Validation SQL: Check if staff is already booked
+    check_sql = """
+    SELECT CAID 
+    FROM ClinicalActivity 
+    WHERE STAFF_ID = %s AND Date = %s AND Time = %s
+    LIMIT 1
+    """
+    ins_ca = """
+    INSERT INTO ClinicalActivity (CAID, IID, STAFF_ID, DEP_ID, Date, Time)
+    VALUES (%s, %s, %s, %s, %s, %s)
+    """
+    ins_appt = """
+    INSERT INTO Appointment (CAID, Reason, Status)
+    VALUES (%s, %s, 'Scheduled')
+    """
+    with get_connection() as cnx:
+        try:
+            with cnx.cursor() as cur:
+                # --- [TRIGGER LOGIC START] ---
+                # Check for double booking before doing anything
+                cur.execute(check_sql, (staff_id, date_str, time_str))
+                conflict = cur.fetchone()
+                if conflict:
+                    # STOP! Raise an error to prevent the insert
+                    raise ValueError(f"Double Booking Error: Staff {staff_id} is already busy at {time_str} on {date_str}.")
+                # --- [TRIGGER LOGIC END] ---
+                # If no conflict, proceed with the transaction
+                cur.execute(ins_ca, (caid, iid, staff_id, dep_id, date_str, time_str))
+                cur.execute(ins_appt, (caid, reason))
+                cnx.commit()
+                return True
+        except Exception as e:
+            cnx.rollback()
+            raise e
+\end{lstlisting}
+\paragraph{Note on Architectural Adaptation}
+The final implementation of this scheduling module includes specific validation logic to enforce the "Double Booking" constraint. However, due to the architectural differences between standard MySQL and the distributed TiDB backend, specifically the lack of support for \texttt{CREATE TRIGGER}, this validation was strategically shifted from the database layer to the application layer. A detailed technical justification for this design choice is presented in \fbox{\hyperref[subsec:adapt]{2.4 Adaptation Strategy}}
+
+\newpage
+
+\subsubsection{Module 3: Inventory \& Low Stock (low\_stock)}
+
+This module detects only low quantity medication stocks including also medications with no stock at all. Unlike a standard data retrieval, this functionality utilizes various techniques to filter and load only the wanted rows in the specified format.
+
+\paragraph{SQL Query Explanation:}
+A standard SQL query on the \texttt{Stock} table can easily find items where \texttt{Qty < ReorderLevel}. However, if a hospital has completely run out of a medication, or never logged it, there may be \textbf{no row at all} in the \texttt{Stock} table for that specific Hospital-Drug combination.
+
+To solve this, the application implements a \textbf{Cross-Join Strategy}:
+\begin{enumerate}
+    \item \textbf{Cartesian Product:} A \texttt{CROSS JOIN} is performed between the \texttt{Hospital} table and the \texttt{Medication} table. This generates a theoretical matrix of every possible medication in every hospital.
+    \begin{lstlisting}[language=SQL, caption={Cross-Join Logic for Missing Stock}]
+    FROM Medication M
+    CROSS JOIN Hospital H
+    \end{lstlisting}
+    \item \textbf{Left Join:} The application then \texttt{LEFT JOIN}s the actual \texttt{Stock} table against this matrix.
+    \begin{lstlisting}[language=SQL, caption={Left Join the actual Stock Table}]
+    LEFT JOIN Stock S ON M.DrugID = S.DrugID AND H.HID = S.HID
+    \end{lstlisting}
+    \item \textbf{Null Handling:} If no stock record matches, the database returns \texttt{NULL}. The query uses \texttt{COALESCE(Qty, 0)} to interpret this \texttt{NULL} as a quantity of zero, triggering the alert.
+    \begin{lstlisting}[language=SQL, caption={COALESCE Function}]
+    COALESCE(S.Qty, 0) AS CurrentQuantity,
+    COALESCE(S.ReorderLevel, 0) AS ReorderLevel,
+    \end{lstlisting}
+    \item \textbf{COALESCE Function:} The \texttt{COALESCE} function safeguards the query logic by converting any \texttt{NULL} values, resulting from missing inventory records, into a computational zero, ensuring that complete stockouts are accurately identified and flagged.
+\end{enumerate}
+
+\begin{lstlisting}[language=SQL, caption={Full Sql Query}]
+    SELECT 
+    M.Name AS MedicationName,
+    H.Name AS HospitalName,
+    COALESCE(S.Qty, 0) AS CurrentQuantity,
+    COALESCE(S.ReorderLevel, 0) AS ReorderLevel,
+    CASE 
+        WHEN S.Qty IS NULL THEN 'No Stock'
+        WHEN S.Qty < S.ReorderLevel THEN 'Low Stock'
+        ELSE 'Adequate'
+    END AS StockStatus
+    FROM Medication M
+    CROSS JOIN Hospital H
+    LEFT JOIN Stock S ON M.DrugID = S.DrugID AND H.HID = S.HID
+    WHERE S.Qty IS NULL OR S.Qty < S.ReorderLevel
+    ORDER BY M.Name, H.Name;
+\end{lstlisting}
+
+\paragraph{UI Implementation | Visual Alerting :}
+To make this data actionable for administrators, the application avoids displaying a raw wall of text. Instead, it utilizes \textbf{Pandas Styling} to apply conditional formatting to the data before rendering it in Streamlit.
+
+\textbf{Logic:}
+A Python function iterates through the result set:
+\begin{itemize}
+    \item \textbf{Red Highlight:} Applied if the status is "No Stock" (Qty = 0).
+    \item \textbf{Orange Highlight:} Applied if the status is "Low Stock" (0 < Qty < ReorderLevel).
+    \begin{lstlisting}[language=Python, caption={Python Function used for the styling}]
+    def style_status(val):
+        color = '#ef4444' if val == 'No Stock' else '#f59e0b' if val == 'Low Stock' else '#94A3B8'
+        return f'color: {color}; font-weight: 500'
+\end{lstlisting}
+\end{itemize}
+
+\paragraph{UI Implementation | Donut Chart :}
+To provide an immediate assessment of the hospital's overall inventory health, the interface includes a summary Donut Chart built using \textbf{Plotly Express}.
+
+\textbf{Code Logic:}
+\begin{enumerate}
+    \item \textbf{Aggregation:} The application aggregates the SQL results using \texttt{value\_counts()} on the 'StockStatus' column to determine the distribution of critical vs. adequate stock.
+    \begin{lstlisting}[language=Python, caption={value\_counts() function on the StockStatus}]
+status_counts = df['StockStatus'].value_counts()
+\end{lstlisting}
+    \item \textbf{Visualization:} A pie chart with a center hole (\texttt{hole=0.6}) is generated to create a modern "Donut" aesthetic.
+    \item \textbf{Semantic Coloring:} To ensure consistency with the table highlights, the chart utilizes a specific color sequence: Red (\texttt{\#ef4444}) for shortages, Orange (\texttt{\#f59e0b}) for low stock, and Grey for adequate items.
+\end{enumerate}
+\begin{figure}[H]
+    \centering
+    \fbox{\includegraphics[width=\textwidth]{Figures/low_stock.png}}
+    \captionof{figure}{Low Stock Interface}
+\end{figure}
+
+\begin{lstlisting}[language=Python, caption={Plotly Donut Chart Configuration}]
+# Create a Donut chart with semantic colors
+fig = px.pie(
+    values=status_counts.values,
+    names=status_counts.index,
+    hole=0.6, # Creates the donut shape
+    # Red for Critical, Orange for Warning
+    color_discrete_sequence=['#ef4444', '#f59e0b', '#475569'],
+    template="plotly_dark"
+)
+st.plotly_chart(fig, use_container_width=True)
+\end{lstlisting}
+
+\newpage
+
+\subsubsection{Module 4: Staff Workload Analytics (staff\_share)}
+
+This module provides the user with performance metrics, calculating the share of appointments handled by each staff member relative to their specific hospital's total workload. This requires an SQL aggregation and a visualization strategy capable of handling multi-hospital employment.
+
+\paragraph{SQL Logic:}
+Calculating a percentage share requires: the count for the individual staff member and the total count for the hospital. We will use Subqueries to achieve the desired result (Nested Subqueries).
+
+\textbf{The Query Structure:}
+\begin{enumerate}
+    \item \textbf{Subquery S (Staff):} Counts appointments grouped by \texttt{STAFF\_ID} and \texttt{HID}. This yields the numerator (Individual Workload).
+    \begin{lstlisting}[language=SQL, caption={Staff Subquery}]
+    SELECT ca.STAFF_ID, st.FullName, dep.HID, COUNT(a.CAID) AS StaffApp
+    FROM Appointment a
+    JOIN ClinicalActivity ca ON a.CAID = ca.CAID
+    JOIN Staff st ON ca.STAFF_ID = st.STAFF_ID
+    JOIN Department dep ON ca.DEP_ID = dep.DEP_ID
+    GROUP BY ca.STAFF_ID, st.FullName, dep.HID
+\end{lstlisting}
+    \item \textbf{Subquery H (Hospital):} Counts appointments grouped by \texttt{HID} only. This yields the denominator (Hospital Total).
+    \begin{lstlisting}[language=SQL, caption={Hospital Subquery}]
+    SELECT dep.HID, Hosp.Name, COUNT(a.CAID) AS HospitalApp
+    FROM Appointment a
+    JOIN ClinicalActivity ca ON ca.CAID = a.CAID
+    JOIN Department dep ON ca.DEP_ID = dep.DEP_ID
+    JOIN Hospital Hosp ON dep.HID = Hosp.HID
+    GROUP BY dep.HID, Hosp.Name
+\end{lstlisting}
+    \item \textbf{Main Query:} Joins these two virtual tables on \texttt{HID} to calculate the percentage: $\frac{\text{Staff Appts}}{\text{Hospital Appts}} \times 100$.
+\end{enumerate}
+
+\begin{lstlisting}[language=SQL, caption={Full Query for appointment share}]
+    SELECT 
+    s.STAFF_ID,
+    s.FullName AS StaffName,
+    h.Name AS HospitalName,
+    s.StaffApp AS TotalAppointments,
+    ROUND((s.StaffApp / h.HospitalApp) * 100, 2) AS PercentageShare
+    FROM (
+        SELECT ca.STAFF_ID, st.FullName, dep.HID, COUNT(a.CAID) AS StaffApp
+        FROM Appointment a
+        JOIN ClinicalActivity ca ON a.CAID = ca.CAID
+        JOIN Staff st ON ca.STAFF_ID = st.STAFF_ID
+        JOIN Department dep ON ca.DEP_ID = dep.DEP_ID
+        GROUP BY ca.STAFF_ID, st.FullName, dep.HID
+    ) s
+    JOIN (
+        SELECT dep.HID, Hosp.Name, COUNT(a.CAID) AS HospitalApp
+        FROM Appointment a
+        JOIN ClinicalActivity ca ON ca.CAID = a.CAID
+        JOIN Department dep ON ca.DEP_ID = dep.DEP_ID
+        JOIN Hospital Hosp ON dep.HID = Hosp.HID
+        GROUP BY dep.HID, Hosp.Name
+    ) h ON s.HID = h.HID
+    ORDER BY h.HID, PercentageShare DESC;
+\end{lstlisting}
+
+\paragraph{UI Implementation | Bar Chart}
+A significant challenge in visualizing this data is that many doctors work across multiple hospital sites. Using a standard bar chart often results in data points for the same doctor overlapping illegibly.
+
+\textbf{The Solution:}
+To resolve this, the application utilizes the \textbf{Plotly Express} library to render a **Horizontal Grouped Bar Chart**. This approach offers superior clarity over standard charts through three key mechanisms:
+
+\begin{itemize}
+    \item \textbf{Grouped Mode (\texttt{barmode='group'}):} Instead of stacking values, this setting forces the chart to place bars side-by-side for the same staff member. If a doctor works in "Casablanca" and "Rabat," they appear as two distinct, adjacent bars, preventing any visual overlap.
+    \item \textbf{Semantic Coloring:} The \texttt{HospitalName} is mapped to a discrete color sequence. This allows users to visually distinguish which hospital contributes to the specific workload share at a glance.
+    \item \textbf{Horizontal Orientation:} Given that staff names can be long, setting \texttt{orientation='h'} ensures all labels are readable without rotation or truncation.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \fbox{\includegraphics[width=\textwidth]{Figures/barchart.png}}
+    \captionof{figure}{BarChart Final Result}
+\end{figure}
+
+\begin{lstlisting}[language=Python, caption={Plotly Grouped Bar Chart Logic}]
+# Using Plotly Express to handle multi-site overlaps
+# Using px.bar with barmode='group' prevents overlapping.
+fig = px.bar(
+    df,
+    x="PercentageShare",
+    y="StaffName",
+    color="HospitalName", 
+    orientation='h',
+    barmode='group',      
+    text="PercentageShare",
+    color_discrete_sequence=['#3b82f6', '#10b981', '#f59e0b', '#ef4444', "#b3ff00"],
+    labels={"PercentageShare": "Share (%)", "StaffName": "Staff Member", "HospitalName": "Facility"}
+)
+
+fig.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
+fig.update_layout(
+    title="",
+    xaxis_title="Share of Hospital Appointments",
+    template="plotly_dark",
+    height=500,
+    margin=dict(l=0, r=0, t=0, b=0),
+    paper_bgcolor='rgba(0,0,0,0)',
+    plot_bgcolor='rgba(0,0,0,0)',
+    font=dict(color='#F8FAFC'),
+    xaxis=dict(showgrid=False),
+    yaxis=dict(showgrid=False),
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+)
+
+st.plotly_chart(fig, use_container_width=True)
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \fbox{\includegraphics[width=\textwidth]{Figures/rawdatatable.png}}
+    \captionof{figure}{Raw Data Table}
+\end{figure}
+
+\newpage
+
+\subsubsection{Module 5: Patient Registration Utility (add\_new\_patient)}
+
+\paragraph{Context}
+This module was not part of the original lab specifications. It was integrated into the final application following a recommendation from our Teaching Assistant, Miss Guerbouzi. We determined that a dedicated interface for registering new patients would serve as an invaluable tool for population and debugging, allowing us to rapidly generate test cases for the other modules.
+
+\paragraph{Implementation Overview}
+From a technical perspective, the architecture of this module is similar to the \textbf{Intelligent Scheduling System} (Module 2). It employs a similar strategy of form-based input handling and parameterized SQL insertion. To avoid redundancy, the functional logic of this module is not detailed in this document.
+
+\begin{figure}[H]
+    \centering
+    \fbox{\includegraphics[width=\textwidth]{Figures/add_patient.png}}
+    \captionof{figure}{Add Patient Form}
+\end{figure}
+
+
+\newpage
+
+\subsection{Adaptation Strategy: Handling TiDB Limitations} \label{subsec:adapt}
+
+A core requirement of the lab specification was the implementation of four specific SQL Triggers to enforce business rules. However, the backend selected for this project, \textbf{TiDB}, does not currently support the \texttt{CREATE TRIGGER} statement found in standard MySQL 5.7.
+
+To maintain functional parity with the requirements while leveraging the scalability of TiDB, the application implements a \textbf{Python Based Validation Architecture}. All constraints normally enforced by the database engine were migrated to the Python application layer.
+
+The Requested Triggers were written as requested in \fbox{\hyperref[subsec:Triggers]{1.2 Triggers}} this choice was only made to allow deployement of the app while enforcing buisness rules.
+
+The only trigger that was implemented is the double-booking prevention trigger as it is the only one needed in the tasks that were specified in the Lab.
+
+\subsubsection{The "No-Trigger" Architecture}
+In a traditional architecture, the database acts as the final gatekeeper of data integrity using procedural SQL. In this adapted architecture, the Python plays this role.
+
+\subsubsection{Double-Booking Prevention}
+
+\textbf{Requirement:} The system must reject an appointment request if the staff member is already scheduled for the exact same Date and Time.
+
+\begin{enumerate}
+    \item \textbf{Verification Query:} Before any write operation, the application executes a \texttt{SELECT} query on the \texttt{ClinicalActivity} table, filtering by the requested \texttt{STAFF\_ID}, \texttt{Date}, and \texttt{Time}.
+    \item \textbf{Conflict Detection:} The results are analyzed using \texttt{cursor.fetchone()}. If a record is returned, the time slot is identified as occupied.
+    \item \textbf{Transaction Abort:} Instead of letting the database throw a constraint error, the Python application explicitly raises a \texttt{ValueError}. This halts the execution flow immediately, preventing the \texttt{INSERT} statements from running and triggering a \texttt{ROLLBACK} of the transaction.
+\end{enumerate}
+
+\begin{lstlisting}[language=Python, caption={Double Booking Check Implementation}]
+# 1. Validation SQL: Check if staff is already booked
+check_sql = """
+    SELECT CAID FROM ClinicalActivity 
+    WHERE STAFF_ID = %s AND Date = %s AND Time = %s LIMIT 1
+"""
+
+# ... Inside the transaction ...
+cur.execute(check_sql, (staff_id, date_str, time_str))
+conflict = cur.fetchone()
+
+if conflict:
+    # STOP! Raise an error to prevent the insert
+    raise ValueError(f"Double Booking Error: Staff {staff_id} is already busy.")
+
+# If no conflict, proceed with the transaction
+cur.execute(ins_ca, ...)
+cur.execute(ins_appt, ...)
+\end{lstlisting}
+
+The full Python function can be found in \fbox{\hyperref[subsubsec:schedule_appt]{2.3.2 Module 2 : Intelligent Scheduling System}}
+
+\begin{figure}[H]
+    \centering
+    \fbox{\includegraphics[width=\textwidth]{Figures/fail_appointment.png}}
+    \captionof{figure}{Double Booking Error Message}
+\end{figure}
+
+\newpage
+
+\subsection{Conclusion}
+
+\subsubsection{Summary of Achievements}
+This application layer successfully delivered a robust, full-stack "Application Layer" for the Moroccan National Health Services (MNHS) database. By integrating a Python-based Streamlit frontend with a distributed TiDB backend, the solution effectively bridges the gap between complex relational data and end-user accessibility.
+
+Key technical achivements include:
+\begin{itemize}
+    \item \textbf{Transactional Integrity:} The scheduling module ensures that the database maintains consistent states, even during complex multi-table write operations.
+    \item \textbf{Architectural Adaptability:} The successful migration of business logic (constraints and validations) from the database layer to the application layer demonstrated the flexibility required when working with modern distributed SQL engines like TiDB, which may lack legacy features like Triggers.
+\end{itemize}
+
+\subsubsection{Performance and Scalability}
+The chosen technology stack offers significant advantages for future growth. The use of \textbf{TiDB} ensures that the backend can scale horizontally to handle millions of patient records without complexity, while maintaining MySQL protocol compatibility. Furthermore, the \textbf{Streamlit} framework showed that complex, interactive dashboards can be deployed rapidly with a minimal code, making the system highly maintainable and easy to extend with new modules in the future.
+
+\subsection{Disclosure of AI Utilization}
+
+To maximize development efficiency and ensure a modern user interface, the frontend component of this application was developed with the assistance of Generative AI tools. \newline
+\linebreak
+While the core database logic and SQL architecture were designed based on the lab specifications, We selected the \textbf{Streamlit} framework for the frontend interface. As we had no prior experience with this specific library, AI assistance was utilized to generate the initial code for the UI components (e.g., sidebars, forms, and layout containers). \newline
+\linebreak
+It is important to note that we made a concerted effort to analyze, debug, and fully understand the generated code. The in-depth technical explanations provided in \newline\fbox{\hyperref[subsec:imp]{2.3 Implementation and Code Logic}}, along with the specific code snippets details, serve as evidence of our understanding of the codebase.
+
+\newpage
+
+\subsection{Appendices}
+
+\textbf{Project Repository and Source Code}\newline
+To maintain the readability of this report, the full source code for the application is hosted in a public GitHub repository. This repository serves as the definitive source for the project's codebase, version history, and configuration files.\newline
+
+\textbf{Repository Link:} \\
+\url{https://github.com/I-l-y-a-Z-z/DBMSApplicationLayerDeliverable6}\newline
+
+\textbf{Local Deployment and Database Replication}\newline
+The repository includes all necessary files to replicate the project environment locally:
+
+\begin{itemize}
+    \item \textbf{Comprehensive Documentation (\texttt{README.md}):} A detailed guide providing step-by-step instructions for setting up the Python virtual environment, installing dependencies via \texttt{pip}, and launching the Streamlit server.
+    \item \textbf{Database Generation Script (\texttt{query.sql}):} A monolithic SQL script is provided to fully reconstruct the MNHS database schema and populate it with the hyper-realistic dataset described in this report. This allows the application to be tested in a local MySQL or TiDB environment without requiring access to the production cluster.
+\end{itemize}
+\textbf{Live Demonstration}\newline
+For immediate testing and evaluation purposes, the application has been deployed to the Streamlit Cloud platform. This live instance connects directly to the production TiDB cluster, allowing users to interact with the full system functionality without the need for local installation or configuration.\newline
+
+\textbf{Live Application URL:} \\
+\url{https://mnhslab6.streamlit.app}
+
+
+
+\end{document}
