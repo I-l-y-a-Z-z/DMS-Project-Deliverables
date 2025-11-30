@@ -114,7 +114,7 @@ This section details the implementation of SQL Views and Triggers for the MNHS d
 \textbf{Description:} Returns scheduled appointment counts per hospital for the next 14 days.
 
 \begin{lstlisting}[language=SQL, caption={UpcomingByHospital View}]
-CREATE VIEW UpcomingByHospital AS  
+CREATE or replace VIEW UpcomingByHospital AS  
 SELECT 
     h.Name AS HospitalName, 
     ca.Date AS ApptDate, 
@@ -400,7 +400,141 @@ DELIMITER ;
 
 \newpage
 
-\section{Task 2: Application Layer for MNHS Database}
+\section{Task 2 : Testing (Views and Triggers in action)}
+
+\subsection{SQL Views}
+\subsubsection{Sample Query 1: Upcoming By Hospital}
+\textbf{Objective:} Shows scheduled appointments per hospital for the next 14 days
+\textbf{Query:}
+\begin{lstlisting}[language=SQL, caption={UpcomingByHospital View}]
+SELECT * FROM UpcomingByHospital 
+WHERE HospitalName = 'CHU Ibn Rochd' 
+ORDER BY ApptDate;
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \fbox{\includegraphics[width=\textwidth]{Figures/Upcoming.png}}
+    \captionof{figure}{Output Table for example Query}
+\end{figure}
+
+\subsubsection{Sample Query 2: Drug Pricing Summary}
+\textbf{Objective:} Summarizes medication pricing statistics per hospital
+\textbf{Query:}
+\begin{lstlisting}[language=SQL, caption={DrugPricingSummary View}]
+SELECT * FROM DrugPricingSummary 
+WHERE MedicationName IN ('Doliprane', 'Glucophage', 'Triatec')
+ORDER BY MedicationName, AvgUnitPrice;
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \fbox{\includegraphics[width=\textwidth]{Figures/drugprice.png}}
+    \captionof{figure}{Output Table for example Query}
+\end{figure}
+
+\subsubsection{Sample Query 3: Staff Workload Thirty}
+\textbf{Objective:} Shows staff appointment workload over the last 30 days
+\textbf{Query:}
+\begin{lstlisting}[language=SQL, caption={StaffWorkloadThirty View}]
+SELECT * FROM StaffWorkloadThirty 
+WHERE TotalAppointments > 0 
+ORDER BY CompletedCount;
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \fbox{\includegraphics[width=\textwidth]{Figures/workload.png}}
+    \captionof{figure}{Output Table for example Query}
+\end{figure}
+
+\subsubsection{Sample Query 4: Patient Next Visit}
+\textbf{Objective:} Shows the next scheduled visit for each patient
+\textbf{Query:}
+\begin{lstlisting}[language=SQL, caption={PatientNextVisit View}]
+SELECT * FROM PatientNextVisit 
+WHERE NextApptDate BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+ORDER BY NextApptDate;
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \fbox{\includegraphics[width=\textwidth]{Figures/nextvisit.png}}
+    \captionof{figure}{Output Table for example Query}
+\end{figure}
+
+\subsection{Triggers}
+\subsubsection{Test Case 1: Double Booking Prevention}
+\textbf{Scenario:} We will try to create a conflicting appointment for Dr. Leila Berrada (STAFF\_ID = 2).
+Note : She already has an appointment on 2025-11-28 at 11:00:00 (CAID 1003)
+\textbf{Query:}
+\begin{lstlisting}[language=SQL, caption={Insert Statments}]
+INSERT INTO ClinicalActivity (CAID, IID, STAFF_ID, DEP_ID, Date, Time) VALUES 
+(6001, 101, 2, 11, '2025-11-28', '11:00:00');
+INSERT INTO Appointment (CAID, Reason, Status) VALUES (6001, 'Conflict test same time', 'Scheduled');
+\end{lstlisting}
+
+\begin{lstlisting}[language={}, caption={Error Message}]
+Error Code: 1644. Double booking detected: Staff is already scheduled at this time.
+\end{lstlisting}
+
+\subsubsection{Test Case 2: Expense Recalculation}
+\textbf{Scenario:} We will add a new medication to prescription 1 - this will trigger expense recalculation
+The trigger is blocking this insert because:
+\begin{enumerate}
+    \item Prescription 1 (PID=1) is linked to ClinicalActivity CAID=1000
+    \item CAID=1000 belongs to Department 11 (Cardiologie) in Hospital 1 (CHU Ibn Rochd)
+    \item The trigger checks if Mopral (DrugID=108) has a Unit\_Price at Hospital 1
+    \item Currently, Mopral only has stock at Hospital 3 (CHU Mohammed VI) with price 80.00
+    \item There is NO stock record for Mopral at Hospital 1, so Unit\_Price is NULL
+    \item The trigger detects missing price and blocks with error: "Cannot compute expense: missing unit price"
+\end{enumerate}
+\textbf{Query:}
+\begin{lstlisting}[language=SQL, caption={Insert Statments}]
+INSERT INTO Include (PID, DrugID, Dosage, Duration) VALUES 
+(1, 108, '1 capsule daily', '30 days');
+\end{lstlisting}
+
+\begin{lstlisting}[language={}, caption={Error Message}]
+Error Code: 1644. Cannot compute expense: missing unit price for one or more medications
+\end{lstlisting}
+
+\subsubsection{Test Case 3: Stock Validation}
+\textbf{Scenario:} We will try to insert negative quantity, negative price and lastly negative reorder level.)
+\textbf{Query:}
+\begin{lstlisting}[language=SQL, caption={Insert Statments}]
+INSERT INTO Stock (HID, DrugID, Unit_Price, Qty, ReorderLevel, StockTimestamp) VALUES 
+(1, 110, 25.00, -10, 5, NOW());
+INSERT INTO Stock (HID, DrugID, Unit_Price, Qty, ReorderLevel, StockTimestamp) VALUES 
+(1, 110, -5.00, 50, 10, NOW());
+INSERT INTO Stock (HID, DrugID, Unit_Price, Qty, ReorderLevel, StockTimestamp) VALUES 
+(1, 110, 25.00, 50, -5, NOW());
+\end{lstlisting}
+
+\begin{lstlisting}[language={}, caption={Error Message 1}]
+Error Code: 1644. ERROR: Quantity cannot be negative.
+\end{lstlisting}
+
+\begin{lstlisting}[language={}, caption={Error Message 2}]
+Error Code: 1644. ERROR: Unit price must be positive.
+\end{lstlisting}
+
+\begin{lstlisting}[language={}, caption={Error Message 3}]
+Error Code: 1644. ERROR: Reorder level cannot be negative.
+\end{lstlisting}
+
+\subsubsection{Test Case 4: Patient Delete Protection}
+\textbf{Scenario:} We will try to delete a patient with an existing clinical activity
+\textbf{Query:}
+\begin{lstlisting}[language=SQL, caption={Delete Statment}]
+DELETE FROM Patient WHERE IID = 100;
+\end{lstlisting}
+
+\begin{lstlisting}[language={}, caption={Error Message}]
+Error Code: 1644. Cannot delete patient. Please reassign or delete dependent clinical activities first.
+\end{lstlisting}
+
+\section{Task 3: Application Layer for MNHS Database}
 \subsection{Summary}
 The primary objective of this project is to develop a secure and user-friendly "Application Layer" for the MNHS database.The project prioritizes architectural robustness through the implementation of security best practices, including parameterized queries and environment-based credential management.
 
@@ -1016,20 +1150,20 @@ It is important to note that we made a concerted effort to analyze, debug, and f
 
 \subsection{Appendices}
 
-\textbf{Project Repository and Source Code}\newline
+\subsubsection{Project Repository and Source Code}\newline
 To maintain the readability of this report, the full source code for the application is hosted in a public GitHub repository. This repository serves as the definitive source for the project's codebase, version history, and configuration files.\newline
 
 \textbf{Repository Link:} \\
 \url{https://github.com/I-l-y-a-Z-z/DBMSApplicationLayerDeliverable5}\newline
 
-\textbf{Local Deployment and Database Replication}\newline
+\subsubsection{Local Deployment and Database Replication}\newline
 The repository includes all necessary files to replicate the project environment locally:
 
 \begin{itemize}
     \item \textbf{Comprehensive Documentation (\texttt{README.md}):} A detailed guide providing step-by-step instructions for setting up the Python virtual environment, installing dependencies via \texttt{pip}, and launching the Streamlit server.
     \item \textbf{Database Generation Script (\texttt{query.sql}):} A monolithic SQL script is provided to fully reconstruct the MNHS database schema and populate it with the hyper-realistic dataset described in this report. This allows the application to be tested in a local MySQL or TiDB environment without requiring access to the production cluster.
 \end{itemize}
-\textbf{Live Demonstration}\newline
+\subsubsection{Live Demonstration}\newline
 For immediate testing and evaluation purposes, the application has been deployed to the Streamlit Cloud platform. This live instance connects directly to the production TiDB cluster, allowing users to interact with the full system functionality without the need for local installation or configuration.\newline
 
 \textbf{Live Application URL:} \\
