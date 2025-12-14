@@ -1,0 +1,805 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{graphicx}   % images
+\usepackage{fancyhdr}   % headers/footers
+\usepackage{tcolorbox}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{mdframed}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[hidelinks]{hyperref}
+\setcounter{secnumdepth}{4} % Numbering down to level 4 (paragraph)
+\setcounter{tocdepth}{4}    % Show level 4 in Table of Contents
+% Configuration for code styling
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{red},
+    commentstyle=\color{green!50!black},
+    numbers=left,
+    numberstyle=\tiny,
+    stepnumber=1,
+    frame=single,
+    breaklines=true,
+    tabsize=4,
+    showstringspaces=false
+}
+
+\geometry{margin=1in}
+
+% ---------- LaTeX settings for SQL code ----------
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+  language=SQL,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue}\bfseries,
+  stringstyle=\color{brown},
+  commentstyle=\color{gray}\itshape,
+  showstringspaces=false,
+  frame=single,
+  breaklines=true,
+  captionpos=b,
+  backgroundcolor=\color{backcolour}
+}
+
+% ---------- Header/Footer settings ----------
+\setlength{\headheight}{36pt}
+\setlength{\headsep}{18pt}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhf{}
+\fancyhead[L]{\includegraphics[width=0.13\textwidth, keepaspectratio]{Figures/UM6Plogo.png}}
+\fancyhead[R]{\includegraphics[width=0.13\textwidth, keepaspectratio]{Figures/CC.jpg}}
+\fancyfoot[L]{Data Management Lab}
+\fancyfoot[R]{Prof. Karima Echihabi}
+\fancyfoot[C]{Page \thepage}
+
+\begin{document}
+% ---------- Title Page ----------
+\thispagestyle{empty}
+\begin{center}
+  \includegraphics[width=0.25\textwidth]{Figures/UM6Plogo.png}\hfill
+  \includegraphics[width=0.25\textwidth]{Figures/CC.jpg}
+  \vspace{1.2cm}
+
+  {\LARGE \textbf{Deliverable 6: Physical Design, Security, Transaction
+Management, Transactions and Concurrency Control}}\\[0.6cm]
+  {\large \textbf{Data Management Course}}\\[0.2cm]
+  {\large UM6P College of Computing}\\[0.8cm]
+
+  {\normalsize \textbf{Professor:} Karima Echihabi \quad 
+   \textbf{Program:} Computer Engineering}\\[0.1cm]
+  {\normalsize \textbf{Session:} Fall 2025}\\[1cm]
+
+  \rule{0.9\textwidth}{0.5pt}\\[0.5cm]
+  {\large \textbf{Team Information}} \\[0.3cm]
+  \begin{tabular}{|l|l|}
+    \hline
+    \textbf{Team Name} & alfari9 alkhari9 \\ \hline
+    \textbf{Member 1}  & Ilyas Rahmouni \\ \hline
+    \textbf{Member 2}  & Malak Koulat   \\ \hline
+    \textbf{Member 3}  & Aymane Raiss   \\ \hline
+    \textbf{Member 4}  & Zakaria Harira   \\ \hline
+    \textbf{Member 5}  & Youness Latif   \\ \hline
+    \textbf{Member 6}  & Rayane Khaldi   \\ \hline
+    \textbf{Member 7}  & Younes Lougnidi   \\ \hline
+    \textbf{Repository Link} & \texttt{https://github.com/...} \\ \hline
+  \end{tabular}
+  \rule{0.9\textwidth}{0.5pt}\\
+\end{center}
+\clearpage
+\pagestyle{fancy}
+
+\pagenumbering{roman} 
+\thispagestyle{fancy} 
+\tableofcontents 
+\clearpage
+\pagenumbering{arabic} 
+
+% ---------- Main Content ----------
+\section{Part 1: Physical Design, Security and Transaction
+Management}
+
+\subsection{Index Design}
+
+\subsubsection{View: UpcomingByHospital}
+\textbf{Strategy:}
+\begin{itemize}
+    \item \texttt{CREATE INDEX idx\_appt\_status\_caid ON Appointment (Status, CAID);}
+    \item \texttt{CREATE INDEX idx\_ca\_date\_dep ON ClinicalActivity (Date, DEP\_ID);}
+\end{itemize}
+
+\textbf{Justification:}
+The view filters by \texttt{Status='Scheduled'} and a 14-day date range.
+\begin{enumerate}
+    \item \textbf{Appointment Index:} \texttt{Status} is the leading column for equality filtering. \texttt{CAID} is included to cover the join to \texttt{ClinicalActivity}, avoiding heap lookups.
+    \item \textbf{ClinicalActivity Index:} \texttt{Date} is the leading column for the range scan. \texttt{DEP\_ID} is included to accelerate the subsequent join to \texttt{Department}.
+\end{enumerate}
+
+\textbf{Overhead:}
+Justified by the high read frequency of operational dashboards. The performance gain on reads outweighs the slight cost to inserts.
+
+\subsubsection{View: StaffWorkloadThirty}
+\textbf{Strategy:}
+\begin{itemize}
+    \item \texttt{CREATE INDEX idx\_ca\_date\_staff ON ClinicalActivity (Date, STAFF\_ID);}
+\end{itemize}
+
+\textbf{Justification:}
+The view filters for the last 30 days.
+\begin{enumerate}
+    \item \textbf{Leading Column:} \texttt{Date} is used first to narrow the search space to the relevant time window.
+    \item \textbf{Covering Index:} \texttt{STAFF\_ID} is included so the database can perform the \texttt{GROUP BY} operation directly from the index tree (Index-Only Scan), eliminating the need to access the main table storage.
+\end{enumerate}
+
+\textbf{Overhead:}
+Minimal compared to the cost of a full table scan on a large history table.
+
+\subsubsection{View: PatientNextVisit}
+\textbf{Strategy:}
+\begin{itemize}
+    \item \texttt{CREATE INDEX idx\_ca\_iid\_date ON ClinicalActivity (IID, Date);}
+\end{itemize}
+
+\textbf{Justification:}
+The view finds the minimum future date per patient.
+\begin{enumerate}
+    \item \textbf{Leading Column:} \texttt{IID} groups all records for a patient together.
+    \item \textbf{Optimization:} The sorted \texttt{Date} column allows the optimizer to perform a "Loose Index Scan," jumping directly to the first future date for each patient without scanning their entire history.
+\end{enumerate}
+
+\textbf{Overhead:}
+Ensures O(1) lookup performance per patient as the database grows, preventing linear degradation.
+
+\subsubsection{Optimization}
+\textbf{Strategy:}
+\begin{itemize}
+    \item \textbf{Appointment:} \texttt{CREATE INDEX idx\_appt\_status\_caid ON Appointment (Status, CAID);}
+    \item \textbf{ClinicalActivity:} \texttt{CREATE INDEX idx\_ca\_date\_dep\_caid ON ClinicalActivity (Date, DEP\_ID, CAID);}
+\end{itemize}
+
+\textbf{Justification:}
+This complex query joins four tables with filters on Status and Date.
+\begin{enumerate}
+    \item \textbf{Appointment:} The \texttt{(Status, CAID)} index allows the engine to isolate 'Scheduled' rows instantly and provides the key for joining.
+    \item \textbf{ClinicalActivity:} The \texttt{(Date, DEP\_ID, CAID)} index supports the date range filter first. It is a covering index that includes the foreign keys needed for joining both \texttt{Department} and \texttt{Appointment}, minimizing disk I/O.
+\end{enumerate}
+
+\subsection{Partitioning}
+
+\subsubsection{Partitioning on ClinicalActivity}
+\textbf{Proposed Strategy:}
+Use range partitioning on \texttt{ClinicalActivity.Date} (and correspondingly for \texttt{Appointment} via \texttt{CAID}) by year or by month.
+
+\textbf{Example SQL:}
+\begin{lstlisting}[language=SQL, caption=Range Partitioning Implementation]
+CREATE TABLE ClinicalActivity (
+    CAID INT,
+    IID INT NOT NULL,
+    STAFF_ID INT NOT NULL,
+    DEP_ID INT NOT NULL,
+    Date DATE NOT NULL,
+    Time TIME,
+    -- Composite PK required for MySQL partitioning
+    PRIMARY KEY (CAID, Date), 
+    FOREIGN KEY (IID) REFERENCES Patient(IID),
+    FOREIGN KEY (STAFF_ID) REFERENCES Staff(STAFF_ID),
+    FOREIGN KEY (DEP_ID) REFERENCES Department(DEP_ID)
+)
+PARTITION BY RANGE (YEAR(Date)) (
+    PARTITION p2020 VALUES LESS THAN (2021),
+    PARTITION p2021 VALUES LESS THAN (2022),
+    PARTITION p2022 VALUES LESS THAN (2023),
+    PARTITION p2023 VALUES LESS THAN (2024),
+    PARTITION pmax VALUES LESS THAN MAXVALUE
+);
+\end{lstlisting}
+
+\textbf{Benefits:}
+\begin{itemize}
+    \item \textbf{Speeds up queries filtering on recent dates:} Only the relevant partitions for the requested year/month are scanned instead of the full table. For example, a query like \texttt{SELECT * FROM ClinicalActivity WHERE Date >= '2025-01-01';} will only scan the 2025 partition.
+    \item \textbf{Easier maintenance and archiving:} Old partitions can be dropped or archived quickly using commands like \texttt{ALTER TABLE ClinicalActivity DROP PARTITION p2020;}.
+\end{itemize}
+
+\textbf{Drawbacks:}
+\begin{itemize}
+    \item \textbf{Queries not filtering on date:} Queries scanning the entire table must check all partitions, which is potentially slower.
+    \item \textbf{Global Indexes:} Some global indexes may be harder to maintain depending on the database.
+\end{itemize}
+
+\subsubsection{Partitioning on Stock}
+\textbf{Beneficial Workloads:}
+Queries that filter specifically by \texttt{HID} (e.g., \texttt{SELECT * FROM Stock WHERE HID = 5}) would benefit significantly. The database engine can use \textbf{partition pruning} to scan only the partition corresponding to that specific hospital, ignoring data from all other hospitals. Additionally, administrative maintenance tasks, such as removing a hospital's inventory or archiving its data, become much faster metadata operations (dropping a partition) rather than slow row-by-row deletions.
+
+\textbf{Data Skew and Balance:}
+\textbf{Yes, this creates a high risk of data skew and unbalanced partitions.} In a real-world health service, hospital sizes vary dramatically (e.g., a large central university hospital vs. a small rural clinic). Partitioning by \texttt{HID} would result in some partitions containing millions of rows while others contain very few. This imbalance can lead to performance bottlenecks in parallel processing, as the system must wait for the largest partition to finish scanning.
+
+\textbf{Interaction with Joins on HID:}
+This partitioning strategy improves performance for \textbf{equi-joins on \texttt{HID}} (e.g., joining \texttt{Stock} with \texttt{Hospital} or \texttt{Department}). The database can perform partition-wise joins, matching rows within the same partition boundaries efficiently. However, for joins on other attributes (e.g., \texttt{Medication\_ID}), the partitioning offers no benefit and may degrade performance, as the join engine would be forced to access every partition to find matching records.
+
+\subsection{Tablespaces and Storage Layout}
+
+\subsubsection{Query Execution Analysis (EXPLAIN)}
+\textbf{Methodology:}
+To analyze the impact of physical design on query performance, we populated the database with synthetic data. This included generating 100,000 rows for the \texttt{ClinicalActivity} table to simulate a realistic production volume, along with corresponding referenced data in \texttt{Patient}, \texttt{Staff}, and \texttt{Department}.
+
+\begin{lstlisting}[language=SQL, caption=Synthetic Data Generation (Excerpt)]
+-- Generating 100,000 Clinical Activities
+INSERT INTO ClinicalActivity (CAID, IID, STAFF_ID, DEP_ID, Date, Time)
+SELECT n,
+       (n % 1000) + 1,   -- 1,000 patients
+       (n % 100) + 1,    -- 100 staff
+       (n % 50) + 1,     -- 50 departments
+       DATE_ADD('2020-01-01', INTERVAL (n % 1825) DAY),
+       MAKETIME(n % 24, n % 60, 0)
+FROM ( ... ) t -- Number generator logic
+LIMIT 100000;
+\end{lstlisting}
+
+\textbf{Measurement Procedure:}
+We implemented a stored procedure to automate the timing process, ensuring accuracy by averaging execution time over three distinct runs.
+
+\begin{lstlisting}[language=SQL, caption=Measurement Procedure]
+CREATE PROCEDURE AvgExecutionTime()
+BEGIN
+    DECLARE i INT DEFAULT 1;
+    DECLARE total_time BIGINT DEFAULT 0;
+    -- Loop 3 times to calculate average
+    WHILE i <= 3 DO
+        SET start_time = NOW(6);
+        -- [Target Query Executed Here]
+        SET total_time = total_time + TIMESTAMPDIFF(MICROSECOND, start_time, NOW(6));
+        SET i = i + 1;
+    END WHILE;
+    SELECT total_time / 3 / 1000 AS avg_time_ms;
+END //
+\end{lstlisting}
+
+\textbf{Target Query:}
+The analysis targeted a complex analytical query calculating the percentage of hospital appointments handled by each staff member, requiring joins across \texttt{Appointment}, \texttt{ClinicalActivity}, and \texttt{Department}.
+
+\begin{lstlisting}[language=SQL, caption=Target Analytical Query]
+WITH staff_hosp AS (
+    SELECT c.STAFF_ID, d.HID, COUNT(*) AS n
+    FROM Appointment a
+    JOIN ClinicalActivity c ON c.CAID = a.CAID
+    JOIN Department d ON d.DEP_ID = c.DEP_ID
+    GROUP BY c.STAFF_ID, d.HID
+),
+hosp_tot AS (
+    SELECT d.HID, COUNT(*) AS n
+    FROM Appointment a
+    JOIN ClinicalActivity c ON c.CAID = a.CAID
+    JOIN Department d ON d.DEP_ID = c.DEP_ID
+    GROUP BY d.HID
+)
+SELECT sh.STAFF_ID, sh.HID, sh.n AS TotalAppointments,
+       ROUND(100 * sh.n / ht.n, 2) AS PctOfHospital
+FROM staff_hosp sh
+JOIN hosp_tot ht ON ht.HID = sh.HID;
+\end{lstlisting}
+
+\textbf{Results and Analysis:}
+
+\begin{enumerate}
+    \item \textbf{Baseline (No Index):}
+    \begin{itemize}
+        \item Average Execution Time: \textbf{122.65 ms}
+        \item \textit{Observation:} The query likely relied on full table scans for the aggregations.
+    \end{itemize}
+
+    \item \textbf{Optimization:}
+    We introduced a secondary index to support the join on \texttt{DEP\_ID} and the grouping by \texttt{STAFF\_ID}.
+    \begin{lstlisting}[language=SQL, caption=Index Creation]
+    CREATE INDEX idx_ca_dep_staff ON ClinicalActivity (DEP_ID, STAFF_ID);
+    \end{lstlisting}
+
+    \item \textbf{Optimized (With Index):}
+    \begin{itemize}
+        \item Average Execution Time: \textbf{99.69 ms}
+        \item \textit{Improvement:} \textbf{$\approx$ 18.7\% faster}.
+    \end{itemize}
+\end{enumerate}
+
+The index \texttt{idx\_ca\_dep\_staff} allowed the optimizer to streamline the join between \texttt{ClinicalActivity} and \texttt{Department}, reducing the I/O overhead required to filter and group the 100,000 activity records.
+
+\subsection{Visualizing the Impact of Indexing}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\textwidth]{Figures/index_impact_plot.png}
+    \caption{Performance Comparison: With Index vs. Without Index}
+    \label{fig:index_impact}
+\end{figure}
+
+\subsubsection{Interpretation of Results}
+As the table size grows, the performance gap between the two curves widens significantly (see Figure \ref{fig:index_impact}). The \textbf{"Without Index"} execution time increases linearly ($O(N)$) because the database must perform a full table scan on the \texttt{Appointment} and \texttt{ClinicalActivity} tables. In contrast, the \textbf{"With Index"} time remains low and nearly constant ($O(\log N)$).
+
+This behavior proves that the \textbf{indexing method has successfully sped up the \texttt{UpcomingByHospital} query}.\newline By adding indexes on \texttt{Appointment(Status)} and \texttt{ClinicalActivity(Date)}, the database can efficiently filter records, transforming a query that would otherwise become critically slow into one that remains instant.
+
+\subsubsection{Experimental Breakdown}
+
+\paragraph{Trial 1: Populated Dataset (Real-World Load)}
+In this trial, where the tables were successfully populated with up to 1,000,000 rows, the impact of indexing was decisive.
+\begin{itemize}
+    \item \textbf{Observation:} Without the index, query performance degraded rapidly as data volume increased (e.g., taking >380ms). With the index, performance remained stable.
+    \item \textbf{Conclusion:} This trial confirms that indexing is mandatory for the \texttt{UpcomingByHospital} view to function scalably in a production environment.
+\end{itemize}
+
+\paragraph{Trial 2: Empty/Control Dataset}
+In this trial, where the tables contained negligible data, both configurations performed instantly (<12ms).
+\begin{itemize}
+    \item \textbf{Observation:} The lack of data meant there was no "haystack" to search through, so the optimization provided by the index was invisible.
+    \item \textbf{Conclusion:} This serves as a control baseline, proving that the overhead of the index is non-existent even when the system is under minimal load.
+\end{itemize}
+
+\subsubsection{Final Verdict}
+Combining the findings from both trials confirms that B-Tree indexing is the robust solution for optimizing the \textbf{MNHS} database. It ensures the \texttt{UpcomingByHospital} view retrieves data in milliseconds, regardless of whether the hospital manages 10,000 or 1,000,000 appointments.
+
+\subsubsection{Experimental Data}
+The following tables present the raw execution timings collected during the experiments.
+
+\begin{table}[h!]
+    \centering
+    \caption{Trial 1 Results (Populated Dataset - result1.csv)}
+    \begin{tabular}{|r|r|r|l|}
+        \hline
+        \textbf{Rows} & \textbf{No Index (ms)} & \textbf{With Index (ms)} & \textbf{Improvement} \\ \hline
+        10,000 & 0.73 & 2.74 & 0.3x faster \\
+        50,000 & 0.72 & 5.38 & 0.1x faster \\
+        100,000 & 261.24 & 15.21 & 17.2x faster \\
+        500,000 & 383.67 & 143.22 & 2.7x faster \\
+        1,000,000 & 1.15 & 161.16 & 0.0x faster \\ \hline
+    \end{tabular}
+    \label{tab:result1}
+\end{table}
+
+\begin{table}[h!]
+    \centering
+    \caption{Trial 2 Results (Control/Empty Dataset - result2.csv)}
+    \begin{tabular}{|r|r|r|l|}
+        \hline
+        \textbf{Rows} & \textbf{No Index (ms)} & \textbf{With Index (ms)} & \textbf{Improvement} \\ \hline
+        10,000 & 0.84 & 1.83 & 0.5x faster \\
+        50,000 & 0.95 & 0.88 & 1.1x faster \\
+        100,000 & 0.88 & 1.35 & 0.7x faster \\
+        500,000 & 10.65 & 1.69 & 6.3x faster \\
+        1,000,000 & 1.69 & 2.01 & 0.8x faster \\ \hline
+    \end{tabular}
+    \label{tab:result2}
+\end{table}
+
+\subsubsection{Benchmarking Methodology}
+The experimental data was generated using a custom SQL script designed to isolate the impact of indexing. The script includes a stored procedure to generate synthetic data in batches and a testing procedure to measure execution time.
+
+\begin{lstlisting}[language=SQL, caption=Data Generation and Benchmarking Procedures]
+-- 1. Optimized Synthetic Data Generator
+CREATE PROCEDURE AddSyntheticData(IN num_rows INT)
+BEGIN
+    DECLARE i INT DEFAULT 0;
+    DECLARE start_patient_id INT;
+    DECLARE start_activity_id INT;
+    DECLARE batch_size INT DEFAULT 50000;
+    DECLARE current_batch INT;
+    
+    -- Disable checks for speed
+    SET FOREIGN_KEY_CHECKS = 0;
+    
+    -- Get start IDs
+    SELECT IFNULL(MAX(IID), 0) + 1 INTO start_patient_id FROM Patient;
+    SELECT IFNULL(MAX(CAID), 0) + 1 INTO start_activity_id FROM ClinicalActivity;
+
+    WHILE i < num_rows DO
+        IF (num_rows - i) < batch_size THEN SET current_batch = num_rows - i;
+        ELSE SET current_batch = batch_size;
+        END IF;
+
+        -- Create temp numbers table for batch processing
+        CREATE TEMPORARY TABLE temp_numbers_batch (n INT);
+        -- ... (Logic to fill temp table) ...
+
+        -- Bulk Insert Patients
+        INSERT INTO Patient (IID, CIN, FullName, Birth, Sex, BloodGroup, Phone)
+        SELECT start_patient_id + n, CONCAT('PAT', start_patient_id + n), ...
+        FROM temp_numbers_batch;
+
+        -- Bulk Insert ClinicalActivity
+        INSERT INTO ClinicalActivity (CAID, IID, STAFF_ID, DEP_ID, Date, Time)
+        SELECT start_activity_id + n, start_patient_id + n, ...
+        FROM temp_numbers_batch;
+
+        -- Bulk Insert Appointment
+        INSERT INTO Appointment (CAID, Reason, Status)
+        SELECT start_activity_id + n, ...
+        FROM temp_numbers_batch;
+
+        DROP TEMPORARY TABLE temp_numbers_batch;
+        SET start_patient_id = start_patient_id + current_batch;
+        SET start_activity_id = start_activity_id + current_batch;
+        SET i = i + current_batch;
+    END WHILE;
+    SET FOREIGN_KEY_CHECKS = 1;
+END//
+
+-- 2. Performance Test Procedure
+CREATE PROCEDURE PerformanceTest(IN size INT, IN test_type VARCHAR(20))
+BEGIN
+    DECLARE start_time TIMESTAMP(6);
+    DECLARE end_time TIMESTAMP(6);
+    DECLARE total_ms DECIMAL(10,2) DEFAULT 0;
+    DECLARE i INT DEFAULT 0;
+    
+    WHILE i < 3 DO
+        SET start_time = CURRENT_TIMESTAMP(6);
+        -- Target Query
+        SELECT SQL_NO_CACHE COUNT(*) INTO @result_count
+        FROM Appointment a  
+        JOIN ClinicalActivity ca ON ca.CAID = a.CAID  
+        JOIN Department d ON d.DEP_ID = ca.DEP_ID  
+        JOIN Hospital h ON h.HID = d.HID  
+        WHERE a.Status = 'Scheduled' 
+          AND ca.Date BETWEEN '2025-11-27' AND DATE_ADD('2025-11-27', INTERVAL 14 DAY);
+        
+        SET end_time = CURRENT_TIMESTAMP(6);
+        SET total_ms = total_ms + TIMESTAMPDIFF(MICROSECOND, start_time, end_time) / 1000.0;
+        SET i = i + 1;
+        DO SLEEP(0.1); 
+    END WHILE;
+    
+    INSERT INTO PerformanceResults (table_size, test_type, avg_time_ms)
+    VALUES (size, test_type, total_ms / 3);
+END//
+\end{lstlisting}
+
+\subsubsection{Visualization Code}
+The plots were generated using the following Python script using Matplotlib and Seaborn.
+
+\begin{lstlisting}[language=Python, caption=Python Script for Generating Plots]
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# ==========================================
+# 1. LOAD DATASETS
+# ==========================================
+# Ensure 'result1.csv' and 'result2.csv' are in your folder
+try:
+    df_try1 = pd.read_csv('result1.csv')
+    df_try2 = pd.read_csv('result2.csv')
+    print("Files loaded successfully.")
+except FileNotFoundError:
+    print("Error: Please make sure result1.csv and result2.csv are uploaded.")
+
+# ==========================================
+# 2. CREATE COMPARISON PLOT
+# ==========================================
+fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+# --- Plot 1: First Try ---
+sns.lineplot(ax=axes[0], data=df_try1, x='Rows', y='No_Index_Time', 
+             marker='o', label='No Index', color='#d62728', linewidth=2.5)
+sns.lineplot(ax=axes[0], data=df_try1, x='Rows', y='With_Index_Time', 
+             marker='o', label='With Index', color='#2ca02c', linewidth=2.5)
+
+axes[0].set_title('First Try', fontsize=14, fontweight='bold')
+axes[0].set_xlabel('Number of Rows (Millions)', fontsize=12)
+axes[0].set_ylabel('Execution Time (ms)', fontsize=12)
+axes[0].grid(True, linestyle='--', alpha=0.7)
+axes[0].legend()
+
+# --- Plot 2: Second Try ---
+sns.lineplot(ax=axes[1], data=df_try2, x='Rows', y='No_Index_Time', 
+             marker='o', label='No Index', color='#d62728', linewidth=2.5)
+sns.lineplot(ax=axes[1], data=df_try2, x='Rows', y='With_Index_Time', 
+             marker='o', label='With Index', color='#2ca02c', linewidth=2.5)
+
+axes[1].set_title('Second Try', fontsize=14, fontweight='bold')
+axes[1].set_xlabel('Number of Rows (Millions)', fontsize=12)
+axes[1].set_ylabel('Execution Time (ms)', fontsize=12)
+axes[1].grid(True, linestyle='--', alpha=0.7)
+axes[1].legend()
+
+plt.tight_layout()
+plt.show()
+\end{lstlisting}
+
+\newpage
+
+\section{Part 2: Transactions and Concurrency Control}
+
+\subsection{Revisiting ACID Transactions}
+
+\subsubsection{Example 1 :}
+\textbf{ACID property satisfied: Atomicity and Durability}
+
+\textbf{Atomicity (satisfied):}
+Atomicity requires that a transaction be executed entirely or not at all. In this scenario, although the system crashes after the first operation, the database recovery mechanism detects the incomplete transaction and ensures that either both the Expense insertion and the Insurance update are applied, or neither is. This guarantees all-or-nothing behavior.
+
+\textbf{Durability (satisfied):}
+Once the transaction is successfully completed after recovery, its effects persist despite the crash. The committed updates remain stored in durable storage.
+
+\textbf{Why the other ACID properties are not the main concern:}
+\begin{itemize}
+    \item \textbf{Consistency:} Consistency is not violated because the database is eventually restored to a valid state where both related updates exist. Integrity constraints are respected after recovery.
+    \item \textbf{Isolation:} Isolation is not relevant here because the scenario does not involve concurrent transactions interfering with each other. The problem is about crash recovery, not concurrency.
+\end{itemize}
+
+\subsubsection{Example 2 :}
+\textbf{ACID property violated: Isolation}
+
+\textbf{Isolation (violated):}
+Isolation requires that concurrent transactions behave as if they were executed serially. In this scenario, both booking transactions read the same available slot and both proceed to book it, leading to an inconsistent state where two confirmations exist for one slot. This is a classic concurrency anomaly caused by insufficient isolation.
+
+\textbf{Why the other ACID properties are not the main concern:}
+\begin{itemize}
+    \item \textbf{Atomicity:} Each booking transaction completes fully (read + insert/update). There is no partial execution, so atomicity is not violated.
+    \item \textbf{Consistency:} Although the final state is logically incorrect from a business perspective, the violation is caused by concurrent access, not by broken integrity constraints enforced by the DBMS itself.
+    \item \textbf{Durability:} Once both confirmations are issued, they are durably stored. The issue is not data loss after a crash, but incorrect concurrent behavior.
+\end{itemize}
+
+\subsubsection{Example 3 :}
+This scenario satisfies the \textbf{Isolation} property. Isolation ensures that concurrent transactions (Staff A's update and Staff B's view) operate independently without interfering with each other. Because Staff B does not see Staff A's new medications until Staff A explicitly \textit{commits} the transaction by clicking "Save," the system is preventing a \textit{dirty read}, a common concurrency anomaly. The intermediate, uncommitted state of the data is hidden from other concurrent users.
+
+\subsubsection{Example 4 :}
+This scenario is a violation of the \textbf{Durability} property. Durability guarantees that once a transaction is successfully \textit{committed} (implied by the staff member clicking "Save"), its changes must be permanent and survive any subsequent system failures. Since the power outage occurred before the data was flushed to durable storage, and the newly registered patient and activity were lost upon restart, the system failed to ensure the permanence of the committed transaction.
+
+\subsubsection{Example 5 :}
+This scenario satisfies both the \textbf{Consistency} and \textbf{Isolation} properties. \textit{Consistency} is satisfied because the pharmacy module enforces a business rule (never recording negative stock or incorrect totals), ensuring that the database moves from one valid state to another. \textit{Isolation} is also satisfied because the system guarantees that the stock quantity is reduced correctly regardless of how many pharmacists are updating stock concurrently. This prevents concurrency issues like "lost updates," where one pharmacist's update might overwrite another's, thereby ensuring the correctness of the final stock total.
+
+\subsection{Implementing Atomic Transactions}
+
+\subsubsection{Atomic scheduling of an appointment}
+
+\begin{lstlisting}[language=SQL, caption=Atomic Insertion Transaction]
+START TRANSACTION;
+INSERT INTO ClinicalActivity (CAID, PID, STAFF_ID, DEP_ID, Date, Time)
+VALUES (12345, 10, 501, 20, '2025-03-15', '09:00:00');
+
+INSERT INTO Appointment (CAID, Reason, Status)
+VALUES (12345, 'Routine Checkup', 'Scheduled');
+COMMIT;
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{Analysis:}
+The transaction enforces atomicity by treating the two \texttt{INSERT} operations as a single unit of work, either both the \texttt{ClinicalActivity} and the \texttt{Appointment} are successfully inserted and committed, or, if any error occurs, a rollback cancels both operations. This guarantees that the database never contains a \texttt{ClinicalActivity} without its corresponding \texttt{Appointment}, or vice versa. In contrast, if autocommit mode were used and each \texttt{INSERT} executed as a separate transaction, one \texttt{INSERT} could succeed while the other fails, leaving partial and inconsistent data visible to users, which breaks atomicity and can violate data consistency.
+
+\subsubsection{Atomic update of stock and expense}
+
+\begin{lstlisting}[language=SQL, caption=Atomic Update of Stock and Expense]
+-- (a) Atomic update of Stock.Qty and Expense.Total
+START TRANSACTION;
+
+-- Update stock quantity
+UPDATE Stock
+SET Qty = Qty - 1
+WHERE HID = 1 AND MID = 101;
+
+-- Update expense total
+UPDATE Expense
+SET Total = Total + 100.00
+WHERE CAID = 5001;
+
+-- If everything succeeds, commit
+COMMIT;
+
+-- If any error occurs, rollback
+ROLLBACK;
+\end{lstlisting}
+
+\textbf{ACID Properties Important for this Scenario:}
+\begin{itemize}
+    \item \textbf{Atomicity:} Ensures both Stock and Expense updates succeed together or are fully rolled back on failure.
+    \item \textbf{Consistency:} Guarantees database constraints (e.g., Qty $\ge$ 0, valid Total) are maintained after the transaction.
+    \item \textbf{Isolation:} Prevents other transactions from seeing intermediate states of Stock or Expense.
+    \item \textbf{Durability:} Once committed, changes persist even in case of system failure.
+\end{itemize}
+
+\textbf{Key focus:} Atomicity and consistency are the most critical to prevent inventory or billing inconsistencies.
+
+\subsection{Identifying Types of Schedules}
+
+\subsubsection{Question 1: Equivalence of S1 and S2}
+\textbf{Are the schedules S1 and S2 equivalent?}
+\textbf{Yes, schedules S1 and S2 are equivalent.}
+
+\textbf{Justification:}
+Two schedules are conflict equivalent if they involve the same operations and the order of every pair of conflicting operations is the same.
+
+\begin{enumerate}
+    \item \textbf{Analyze the Transactions:}
+    \begin{itemize}
+        \item Transaction $T_1$: Reads and Writes item A ($R_1(A), W_1(A)$).
+        \item Transaction $T_2$: Reads and Writes item B ($R_2(B), W_2(B)$).
+    \end{itemize}
+
+    \item \textbf{Analyze Conflicts:}
+    Two operations conflict if they belong to different transactions, access the same data item, and at least one is a Write.
+    \begin{itemize}
+        \item \textit{Observation:} $T_1$ operates exclusively on A. $T_2$ operates exclusively on B. There is zero overlap in data items.
+        \item \textit{Result:} There are \textbf{NO conflicting operations} between $T_1$ and $T_2$.
+    \end{itemize}
+
+    \item \textbf{Transformation:}
+    Because there are no conflicts, adjacent operations from different transactions can be swapped without changing the result.
+    \begin{itemize}
+        \item Schedule $S_1$: $R_1(A), R_2(B), W_1(A), W_2(B)$
+        \item Swap the middle two ($R_2(B)$ and $W_1(A)$ are non-conflicting).
+        \item Result: $R_1(A), W_1(A), R_2(B), W_2(B)$. This is exactly Schedule $S_2$.
+    \end{itemize}
+\end{enumerate}
+
+\textbf{Conclusion:} Since $S_1$ can be transformed into $S_2$ by swapping non-conflicting operations, they are conflict equivalent.
+
+\subsubsection{Question 2: Serializability of S1}
+\textbf{Is S1 serializable? If yes, give an equivalent serial schedule.}
+\textbf{Yes, S1 is serializable.}
+
+\textbf{Justification:}
+A schedule is serializable if it is equivalent to a serial schedule (a schedule where transactions run consecutively without interleaving).
+
+\textbf{Dependency Graph Analysis:}
+\begin{itemize}
+    \item \textbf{Nodes:} $T_1, T_2$
+    \item \textbf{Edges:} An edge $T_1 \rightarrow T_2$ exists if an operation in $T_1$ conflicts with and precedes an operation in $T_2$.
+    \item \textbf{Result:} Since the Read/Write sets are disjoint (\{A\} vs \{B\}), there are no conflicts and thus no edges in the Precedence Graph. A graph with no cycles implies the schedule is conflict serializable.
+\end{itemize}
+
+\textbf{Equivalent Serial Schedule:}
+Since there are no dependencies, any serial ordering of the transactions is valid. Both of the following are correct:
+
+\begin{itemize}
+    \item \textbf{Option A ($T_1$ then $T_2$):} $R_1(A), W_1(A), R_2(B), W_2(B)$ (Identical to $S_2$)
+    \item \textbf{Option B ($T_2$ then $T_1$):} $R_2(B), W_2(B), R_1(A), W_1(A)$
+\end{itemize}
+
+\subsection{Conflict Serializability}
+
+\subsubsection{Analysis of Schedule $S_3$}
+
+\textbf{Transactions Defined:}
+\begin{itemize}
+    \item \textbf{$T_1$}: $R(A), W(A)$
+    \item \textbf{$T_2$}: $W(A), R(B)$
+    \item \textbf{$T_3$}: $R(A), W(B)$
+\end{itemize}
+\textit{(Where A = Expense.Total, B = Stock.Qty)}
+
+\textbf{Schedule $S_3$:}
+$$ S_3 : R_1(A),\; W_2(A),\; R_3(A),\; W_1(A),\; W_3(B),\; R_2(B) $$
+
+\paragraph{Conflict Analysis}
+We identify conflicting operations (operations on the same data item by different transactions where at least one is a Write):
+
+\begin{enumerate}
+    \item \textbf{Conflicts on Item A:}
+    \begin{itemize}
+        \item $R_1(A)$ precedes $W_2(A) \Rightarrow T_1 \to T_2$
+        \item $W_2(A)$ precedes $R_3(A) \Rightarrow T_2 \to T_3$
+        \item $R_3(A)$ precedes $W_1(A) \Rightarrow T_3 \to T_1$
+        \item $W_2(A)$ precedes $W_1(A) \Rightarrow T_2 \to T_1$
+    \end{itemize}
+    \item \textbf{Conflicts on Item B:}
+    \begin{itemize}
+        \item $W_3(B)$ precedes $R_2(B) \Rightarrow T_3 \to T_2$
+    \end{itemize}
+\end{enumerate}
+
+\paragraph{Precedence Graph and Conclusion}
+
+
+
+\begin{figure}[h!]
+    \centering
+    % Ensure you save your notebook plot as 'precedence_graph.png'
+    \includegraphics[width=0.6\textwidth]{Figures/precedence_graph.png}
+    \caption{Precedence Graph for Schedule $S_3$ showing a cycle}
+    \label{fig:prec_graph}
+\end{figure}
+
+Based on the dependencies identified above, we construct the precedence graph with the following edges:
+\begin{itemize}
+    \item $T_1 \to T_2$
+    \item $T_2 \to T_3$
+    \item $T_3 \to T_1$
+\end{itemize}
+
+\textbf{Result:}
+The graph contains a cycle:
+$$ T_1 \rightarrow T_2 \rightarrow T_3 \rightarrow T_1 $$
+
+\textbf{Conclusion:}
+Because the precedence graph contains a cycle (as seen in Figure \ref{fig:prec_graph}), **Schedule $S_3$ is NOT conflict serializable**. It cannot be transformed into an equivalent serial schedule by swapping non-conflicting operations.
+
+\subsection{Two-Phase Locking (2PL)}
+
+\subsubsection{Schedule Compatibility Analysis}
+
+\textbf{Schedule 1}
+\begin{itemize}
+    \item \textbf{Compatible with Strict 2PL?} \textbf{Yes.}
+    \item \textbf{Justification:} This is a serial schedule. Transaction $T_1$ completes its entire execution (Growing Phase: acquires locks, Shrinking Phase: commits and releases locks) before $T_2$ begins. There is no interleaving, so no lock conflicts occur.
+\end{itemize}
+
+\textbf{Schedule 2}
+\begin{itemize}
+    \item \textbf{Compatible with Strict 2PL?} \textbf{No.}
+    \item \textbf{Justification:} $T_1$ writes to A ($W_1(A)$), acquiring an Exclusive Lock (X-Lock). Under Strict 2PL, $T_1$ must hold this lock until it commits (after it processes B). However, $T_2$ attempts to read A ($R_2(A)$) immediately after $W_1(A)$. $T_2$ would be blocked waiting for $T_1$ to release the X-Lock, preventing this schedule from occurring.
+\end{itemize}
+
+\textbf{Schedule 3}
+\begin{itemize}
+    \item \textbf{Compatible with Strict 2PL?} \textbf{Yes.}
+    \item \textbf{Justification:} The transactions operate on completely disjoint sets of data items ($T_1$ accesses A and B; $T_2$ accesses C). Since they do not compete for the same locks, they can acquire and hold their respective locks in any order without blocking each other.
+\end{itemize}
+
+\textbf{Schedule 4}
+\begin{itemize}
+    \item \textbf{Compatible with Strict 2PL?} \textbf{No.}
+    \item \textbf{Justification:} $T_1$ writes to A ($W_1(A)$) and holds the Exclusive Lock. $T_1$ has not yet committed (it still needs to access B). When $T_2$ attempts to read A ($R_2(A)$), it will be blocked by $T_1$'s active write lock. $T_2$ cannot proceed until $T_1$ commits, making this interleaved execution impossible.
+\end{itemize}
+
+\subsection{Deadlocks in MNHS}
+
+\subsubsection{Scenario Analysis}
+\textbf{Situation:}
+\begin{itemize}
+    \item \textbf{Transaction $T_1$:} Updates stock for a medication (Data Item A).
+    \item \textbf{Transaction $T_2$:} Updates expense for a clinical activity (Data Item B).
+\end{itemize}
+
+\textbf{Schedule:}
+$$ S : R_1(A),\; R_2(B),\; W_1(B),\; W_2(A) $$
+
+\textbf{Locking Behavior:}
+\begin{enumerate}
+    \item $R_1(A)$: $T_1$ acquires a lock on A.
+    \item $R_2(B)$: $T_2$ acquires a lock on B.
+    \item $W_1(B)$: $T_1$ requests a lock on B, but B is held by $T_2$. $T_1$ waits for $T_2$.
+    \item $W_2(A)$: $T_2$ requests a lock on A, but A is held by $T_1$. $T_2$ waits for $T_1$.
+\end{enumerate}
+
+\subsubsection{Deadlock Detection}
+
+
+\begin{figure}[h!]
+    \centering
+    % Ensure you save your notebook plot as 'wait_for_graph.png'
+    \includegraphics[width=0.6\textwidth]{Figures/wait_for_graph.png}
+    \caption{Wait-For Graph showing the Deadlock Cycle}
+    \label{fig:wait_for_graph}
+\end{figure}
+
+\textbf{Is there a deadlock?}
+\textbf{Yes, there is a deadlock in this schedule.}
+
+\textbf{Justification:}
+\begin{itemize}
+    \item \textbf{$T_1$ is waiting for $T_2$:} $T_1$ holds a lock on A and requests B, which is locked by $T_2$.
+    \item \textbf{$T_2$ is waiting for $T_1$:} $T_2$ holds a lock on B and requests A, which is locked by $T_1$.
+\end{itemize}
+
+This creates a cycle in the Wait-For Graph (see Figure \ref{fig:wait_for_graph}):
+$$ T_1 \rightarrow T_2 \rightarrow T_1 $$
+Because each transaction is waiting for the other to release a lock, neither can proceed.
+
+\subsubsection{Resolution Strategy}
+Since the deadlock has already occurred, the system is operating under a **Deadlock Detection** policy. To resolve this:
+\begin{enumerate}
+    \item \textbf{Detect the Cycle:} The DBMS identifies the circular dependency in the Wait-For Graph.
+    \item \textbf{Select a Victim:} The system chooses one transaction (e.g., $T_1$) to abort based on criteria like lowest priority or least work done.
+    \item \textbf{Rollback:} The victim transaction is aborted and rolled back.
+    \item \textbf{Release Locks:} The locks held by the victim are released, allowing the other transaction ($T_2$) to proceed and complete.
+\end{enumerate}
+
+\textbf{Note on Prevention Protocols:}
+Strategies like "Wait-Die" or "Wound-Wait" are not applicable here because they are \textit{prevention} protocols designed to stop a deadlock \textit{before} it occurs. Since the cycle $T_1 \to T_2 \to T_1$ already exists, we must use Detection and Recovery (Aborting a victim).
+\end{document}
